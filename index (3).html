@@ -1,0 +1,2486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alam Ahmed | Cloud Engineer :: Infrastructure Dashboard</title>
+    <meta name="description" content="Alam Ahmed — Cloud Engineer & AWS Community Builder. I design and automate secure infrastructure across AWS and Azure with Terraform, Kubernetes, and Security as Code.">
+    <meta name="theme-color" content="#05080f">
+    <meta property="og:title" content="Alam Ahmed | Cloud Engineer">
+    <meta property="og:description" content="From NOC trenches to cloud architecture. Terraform, Kubernetes, Security as Code — AWS Community Builder.">
+    <meta property="og:type" content="website">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90' fill='%2300d4aa'%3E%E2%97%88%3C/text%3E%3C/svg%3E">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #05080f;
+            --bg-secondary: #0a0f1c;
+            --bg-card: #0d1321;
+            --border: #1e293b;
+            --text-primary: #e2e8f0;
+            --text-secondary: #94a3b8;
+            --accent-success: #00d4aa;
+            --accent-info: #38bdf8;
+            --accent-warn: #ffd93d;
+            --accent-alert: #ff6b6b;
+            --glow-success: rgba(0, 212, 170, 0.3);
+            --glow-info: rgba(56, 189, 248, 0.3);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+            line-height: 1.6;
+        }
+
+        ::selection { background: var(--accent-success); color: var(--bg-primary); }
+
+        :focus-visible {
+            outline: 2px solid var(--accent-info);
+            outline-offset: 3px;
+            border-radius: 2px;
+        }
+
+        /* Skip link */
+        .skip-link {
+            position: fixed;
+            top: -100px;
+            left: 1rem;
+            z-index: 10001;
+            background: var(--accent-success);
+            color: var(--bg-primary);
+            padding: 0.6rem 1rem;
+            border-radius: 6px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: top 0.2s;
+        }
+        .skip-link:focus { top: 1rem; }
+
+        /* Scroll progress */
+        #scroll-progress {
+            position: fixed;
+            top: 0; left: 0;
+            height: 2px;
+            width: 0;
+            background: linear-gradient(90deg, var(--accent-success), var(--accent-info));
+            z-index: 1001;
+            box-shadow: 0 0 8px var(--glow-success);
+        }
+
+        /* CRT scanlines — subtle texture */
+        .scanlines {
+            position: fixed;
+            inset: 0;
+            z-index: 2;
+            pointer-events: none;
+            background: repeating-linear-gradient(0deg, rgba(255,255,255,0.018) 0 1px, transparent 1px 3px);
+        }
+
+        /* Boot Sequence Overlay */
+        #boot-sequence {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: var(--bg-primary);
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 2rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            transition: opacity 0.6s ease-out, visibility 0.6s;
+            cursor: pointer;
+        }
+        #boot-sequence.done { opacity: 0; visibility: hidden; pointer-events: none; }
+        .boot-inner { max-width: 760px; width: 100%; margin: 0 auto; }
+        .boot-line {
+            color: var(--accent-success);
+            opacity: 0;
+            transform: translateX(-10px);
+            animation: bootIn 0.25s forwards;
+            margin: 2px 0;
+            white-space: pre-wrap;
+        }
+        .boot-line.error { color: var(--accent-alert); }
+        .boot-line.warn { color: var(--accent-warn); }
+        .boot-line.info { color: var(--accent-info); }
+        @keyframes bootIn { to { opacity: 1; transform: translateX(0); } }
+        .boot-hint {
+            margin-top: 2rem;
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            opacity: 0.7;
+            animation: blink 2s infinite;
+        }
+
+        /* Particle Canvas */
+        #particles {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 0;
+            pointer-events: none;
+            opacity: 0.4;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Header */
+        header {
+            position: fixed;
+            top: 0; width: 100%;
+            background: rgba(5, 8, 15, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border);
+            z-index: 100;
+            padding: 1rem 0;
+            transition: padding 0.3s;
+        }
+        header.scrolled { padding: 0.55rem 0; }
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+        }
+        .logo {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: var(--accent-success);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            white-space: nowrap;
+        }
+        .logo::before {
+            content: '◈';
+            color: var(--accent-info);
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+        .nav-links {
+            display: flex;
+            gap: 1.6rem;
+            list-style: none;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+        }
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: color 0.3s;
+            position: relative;
+            white-space: nowrap;
+        }
+        .nav-links a:hover, .nav-links a.active { color: var(--accent-success); }
+        .nav-links a::after {
+            content: '';
+            position: absolute;
+            bottom: -4px; left: 0;
+            width: 0; height: 2px;
+            background: var(--accent-success);
+            transition: width 0.3s;
+        }
+        .nav-links a:hover::after, .nav-links a.active::after { width: 100%; }
+
+        .nav-toggle {
+            display: none;
+            background: none;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--accent-success);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1rem;
+            padding: 0.35rem 0.7rem;
+            cursor: pointer;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.75rem;
+            color: var(--accent-success);
+            font-family: 'JetBrains Mono', monospace;
+            white-space: nowrap;
+        }
+        .status-dot {
+            width: 8px; height: 8px;
+            background: var(--accent-success);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--glow-success);
+            animation: blink 2s infinite;
+        }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+        /* Hero */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            padding-top: 80px;
+            position: relative;
+        }
+        .hero-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4rem;
+            align-items: center;
+        }
+        .hero-content h1 {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 3.5rem;
+            font-weight: 800;
+            line-height: 1.1;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, var(--text-primary) 0%, var(--accent-success) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .hero-content h1.glitching { animation: glitchFlicker 0.3s steps(2) 2; }
+        @keyframes glitchFlicker {
+            0% { text-shadow: 2px 0 var(--accent-alert), -2px 0 var(--accent-info); }
+            50% { text-shadow: -2px 0 var(--accent-alert), 2px 0 var(--accent-info); }
+            100% { text-shadow: none; }
+        }
+        .hero-content .subtitle {
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--accent-info);
+            font-size: 1.1rem;
+            margin-bottom: 1.5rem;
+            min-height: 1.6em;
+        }
+        .hero-content .description {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            max-width: 500px;
+            margin-bottom: 2rem;
+        }
+        .hero-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1rem;
+            text-align: center;
+            transition: all 0.3s;
+        }
+        .stat-card:hover {
+            border-color: var(--accent-success);
+            box-shadow: 0 0 20px var(--glow-success);
+            transform: translateY(-2px);
+        }
+        .stat-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--accent-success);
+        }
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 0.25rem;
+        }
+        .cta-group {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        .btn {
+            padding: 0.875rem 1.75rem;
+            border-radius: 6px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s;
+            cursor: pointer;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .btn-primary {
+            background: var(--accent-success);
+            color: var(--bg-primary);
+        }
+        .btn-primary:hover {
+            box-shadow: 0 0 30px var(--glow-success);
+            transform: translateY(-2px);
+        }
+        .btn-secondary {
+            background: transparent;
+            color: var(--accent-info);
+            border: 1px solid var(--accent-info);
+        }
+        .btn-secondary:hover {
+            background: rgba(56, 189, 248, 0.1);
+            box-shadow: 0 0 20px var(--glow-info);
+        }
+
+        /* Terminal Window */
+        .terminal-window {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+        .terminal-header {
+            background: var(--bg-secondary);
+            padding: 0.75rem 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+        .terminal-btn { width: 12px; height: 12px; border-radius: 50%; }
+        .terminal-btn.red { background: var(--accent-alert); }
+        .terminal-btn.yellow { background: var(--accent-warn); }
+        .terminal-btn.green { background: var(--accent-success); }
+        .terminal-title {
+            margin-left: 0.5rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+        .terminal-body {
+            padding: 1.5rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            line-height: 1.8;
+            min-height: 300px;
+        }
+        .terminal-line {
+            margin: 0.25rem 0;
+            opacity: 0;
+            transform: translateY(4px);
+            transition: opacity 0.35s ease, transform 0.35s ease;
+        }
+        .terminal-line.visible { opacity: 1; transform: none; }
+        .terminal-prompt { color: var(--accent-success); }
+        .terminal-command { color: var(--text-primary); }
+        .terminal-output { color: var(--text-secondary); padding-left: 1.5rem; }
+        .terminal-highlight { color: var(--accent-info); }
+        .terminal-warn { color: var(--accent-warn); }
+        .terminal-success { color: var(--accent-success); }
+        .cursor {
+            display: inline-block;
+            width: 8px; height: 16px;
+            background: var(--accent-success);
+            animation: cursorBlink 1s infinite;
+            vertical-align: middle;
+            margin-left: 2px;
+        }
+        @keyframes cursorBlink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+        /* Sections */
+        section { padding: 6rem 0; position: relative; }
+        .section-alt { background: var(--bg-secondary); }
+        .section-header { margin-bottom: 3rem; }
+        .section-tag {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            color: var(--accent-success);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .section-tag::before { content: '//'; color: var(--text-secondary); }
+        .section-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .section-desc {
+            color: var(--text-secondary);
+            max-width: 600px;
+            font-size: 1.1rem;
+        }
+
+        /* Timeline */
+        .timeline { position: relative; padding-left: 2rem; }
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 0; top: 0; bottom: 0;
+            width: 2px;
+            background: linear-gradient(180deg, var(--accent-success), var(--accent-info), transparent);
+        }
+        .timeline-item {
+            position: relative;
+            margin-bottom: 2.5rem;
+            opacity: 0;
+            transform: translateX(-20px);
+            transition: all 0.6s;
+        }
+        .timeline-item.visible {
+            opacity: 1;
+            transform: translateX(0);
+        }
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -2rem; top: 0.5rem;
+            width: 12px; height: 12px;
+            background: var(--bg-primary);
+            border: 2px solid var(--accent-success);
+            border-radius: 50%;
+            transform: translateX(-5px);
+            box-shadow: 0 0 10px var(--glow-success);
+        }
+        .timeline-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+        .timeline-role {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        .timeline-date {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            color: var(--accent-warn);
+            background: rgba(255, 217, 61, 0.1);
+            padding: 0.25rem 0.75rem;
+            border-radius: 4px;
+        }
+        .timeline-company {
+            color: var(--accent-info);
+            font-size: 0.95rem;
+            margin-bottom: 0.75rem;
+            font-weight: 500;
+        }
+        .timeline-desc {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            line-height: 1.7;
+        }
+        .timeline-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 0.75rem;
+        }
+        .tag {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            padding: 0.25rem 0.6rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            color: var(--text-secondary);
+            transition: all 0.3s;
+        }
+        .tag:hover {
+            border-color: var(--accent-success);
+            color: var(--accent-success);
+        }
+
+        /* Videos */
+        .videos-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 2rem;
+        }
+        .video-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            transition: all 0.3s;
+        }
+        .video-card:hover {
+            border-color: var(--accent-info);
+            transform: translateY(-4px);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.4), 0 0 20px var(--glow-info);
+        }
+        .video-embed {
+            position: relative;
+            padding-bottom: 56.25%;
+            height: 0;
+            overflow: hidden;
+        }
+        .video-embed iframe {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            border-radius: 12px 12px 0 0;
+        }
+        .video-body { padding: 1.25rem; }
+        .video-body .talk-type { margin-bottom: 0.5rem; }
+        .video-body h3 { font-size: 1rem; font-weight: 600; margin-bottom: 0.5rem; }
+        .video-body p { color: var(--text-secondary); font-size: 0.85rem; }
+
+        /* Talks Grid */
+        .talks-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 1.5rem;
+        }
+        .talk-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+        .talk-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 3px;
+            background: linear-gradient(90deg, var(--accent-success), var(--accent-info));
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform 0.3s;
+        }
+        .talk-card:hover::before { transform: scaleX(1); }
+        .talk-card:hover {
+            border-color: var(--accent-success);
+            transform: translateY(-4px);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+        }
+        .talk-type {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .talk-type.podcast { color: var(--accent-alert); }
+        .talk-type.speaker { color: var(--accent-success); }
+        .talk-type.author { color: var(--accent-info); }
+        .talk-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            line-height: 1.4;
+        }
+        .talk-venue {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+        }
+        .talk-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+        .talk-link {
+            color: var(--accent-info);
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        .talk-link:hover {
+            color: var(--accent-success);
+            text-decoration: underline;
+        }
+
+        /* Skills */
+        .skills-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+        .skill-category {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+        }
+        .skill-category h3 {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            color: var(--accent-success);
+            margin-bottom: 1.25rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .skill-item { margin-bottom: 1rem; }
+        .skill-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+        .skill-name { color: var(--text-primary); }
+        .skill-level {
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--accent-success);
+            font-size: 0.8rem;
+        }
+        .skill-bar {
+            height: 6px;
+            background: var(--bg-secondary);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        .skill-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-success), var(--accent-info));
+            border-radius: 3px;
+            width: 0;
+            transition: width 1.5s ease-out;
+        }
+
+        /* Certs */
+        .certs-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1rem;
+        }
+        .cert-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1rem;
+            transition: all 0.3s;
+        }
+        .cert-item:hover {
+            border-color: var(--accent-warn);
+            transform: translateX(4px);
+        }
+        .cert-icon {
+            width: 40px; height: 40px;
+            background: rgba(255, 217, 61, 0.1);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            flex-shrink: 0;
+        }
+        .cert-text h4 { font-size: 0.9rem; font-weight: 600; margin-bottom: 0.25rem; }
+        .cert-text p { font-size: 0.8rem; color: var(--text-secondary); }
+
+        /* Contact */
+        .contact-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 3rem;
+            align-items: center;
+        }
+        .contact-info h3 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .contact-links {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+        .contact-link {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            text-decoration: none;
+            color: var(--text-primary);
+            transition: all 0.3s;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+        }
+        .contact-link:hover {
+            border-color: var(--accent-success);
+            transform: translateX(8px);
+            box-shadow: 0 0 20px var(--glow-success);
+        }
+        .contact-link .icon {
+            width: 40px; height: 40px;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+
+        /* Footer */
+        footer {
+            border-top: 1px solid var(--border);
+            padding: 2rem 0;
+            text-align: center;
+            color: var(--text-secondary);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+        }
+
+        /* Back to top */
+        #back-to-top {
+            position: fixed;
+            bottom: 2rem; right: 2rem;
+            width: 44px; height: 44px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--accent-success);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.1rem;
+            cursor: pointer;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(10px);
+            transition: all 0.3s;
+            z-index: 99;
+        }
+        #back-to-top.show { opacity: 1; visibility: visible; transform: none; }
+        #back-to-top:hover {
+            border-color: var(--accent-success);
+            box-shadow: 0 0 20px var(--glow-success);
+        }
+
+        /* Telemetry strip */
+        .telemetry-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+            gap: 1rem;
+        }
+        .telemetry-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 1.1rem 1.25rem;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s;
+        }
+        .telemetry-card:hover {
+            border-color: var(--accent-info);
+            box-shadow: 0 0 18px var(--glow-info);
+        }
+        .telemetry-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.68rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--text-secondary);
+        }
+        .telemetry-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.55rem;
+            font-weight: 700;
+            color: var(--accent-success);
+            margin-top: 0.4rem;
+            white-space: nowrap;
+        }
+        .telemetry-value.info { color: var(--accent-info); }
+        .telemetry-value.warn { color: var(--accent-warn); }
+        .telemetry-sub { font-size: 0.74rem; color: var(--text-secondary); margin-top: 0.15rem; }
+        .telemetry-card canvas.spark {
+            position: absolute;
+            right: 0.6rem; bottom: 0.6rem;
+            opacity: 0.85;
+        }
+        .telemetry-note {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            opacity: 0.6;
+            margin-top: 1rem;
+            text-align: right;
+        }
+
+        /* Projects (live GitHub) */
+        .projects-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 1.25rem;
+        }
+        .repo-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.25rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.6rem;
+            transition: all 0.3s;
+            text-decoration: none;
+            color: inherit;
+        }
+        .repo-card:hover {
+            border-color: var(--accent-success);
+            transform: translateY(-4px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+        }
+        .repo-name {
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--accent-info);
+            font-weight: 600;
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .repo-name::before { content: '⌥'; color: var(--accent-success); }
+        .repo-desc { color: var(--text-secondary); font-size: 0.85rem; flex: 1; }
+        .repo-meta {
+            display: flex;
+            gap: 1rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            align-items: center;
+        }
+        .lang-dot {
+            width: 10px; height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 0.3rem;
+            vertical-align: -1px;
+        }
+        .live-badge {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.62rem;
+            color: var(--accent-success);
+            border: 1px solid var(--accent-success);
+            border-radius: 4px;
+            padding: 0.1rem 0.45rem;
+            letter-spacing: 1px;
+        }
+        .repo-skeleton {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            height: 130px;
+            position: relative;
+            overflow: hidden;
+        }
+        .repo-skeleton::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(100deg, transparent 30%, rgba(56,189,248,0.07) 50%, transparent 70%);
+            animation: shimmer 1.4s infinite;
+        }
+        @keyframes shimmer { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
+
+        /* Architecture diagram */
+        .arch-wrap {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            overflow-x: auto;
+        }
+        .arch-wrap svg { display: block; min-width: 720px; width: 100%; height: auto; }
+        .arch-node { fill: var(--bg-secondary); stroke: var(--border); rx: 8; }
+        .arch-node-accent { stroke: var(--accent-success); }
+        .arch-text {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            fill: var(--text-primary);
+        }
+        .arch-sub {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            fill: var(--text-secondary);
+        }
+        .arch-edge { stroke: #334155; stroke-width: 1.5; fill: none; }
+        .arch-edge-dashed { stroke: #334155; stroke-width: 1.2; fill: none; stroke-dasharray: 5 5; }
+
+        /* CLI overlay */
+        #cli-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(5, 8, 15, 0.8);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            z-index: 9998;
+            display: none;
+            align-items: flex-start;
+            justify-content: center;
+            padding: 10vh 1rem 1rem;
+        }
+        #cli-overlay.open { display: flex; }
+        .cli-window {
+            width: 100%;
+            max-width: 680px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            box-shadow: 0 30px 80px rgba(0,0,0,0.6);
+            overflow: hidden;
+            animation: cliIn 0.2s ease-out;
+        }
+        @keyframes cliIn { from { opacity: 0; transform: translateY(-12px); } to { opacity: 1; transform: none; } }
+        .cli-body {
+            padding: 1rem 1.25rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            max-height: 50vh;
+            overflow-y: auto;
+            line-height: 1.7;
+        }
+        .cli-line { margin: 0.15rem 0; color: var(--text-secondary); white-space: pre-wrap; }
+        .cli-line.cmd { color: var(--text-primary); }
+        .cli-line .ok { color: var(--accent-success); }
+        .cli-line .inf { color: var(--accent-info); }
+        .cli-line .wrn { color: var(--accent-warn); }
+        .cli-line a { color: var(--accent-info); }
+        .cli-input-row {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+            border-top: 1px solid var(--border);
+            padding: 0.75rem 1.25rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+        }
+        .cli-input-row .prompt { color: var(--accent-success); white-space: nowrap; }
+        #cli-input {
+            flex: 1;
+            background: none;
+            border: none;
+            color: var(--text-primary);
+            font: inherit;
+            outline: none;
+        }
+        .cli-close {
+            margin-left: auto;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-family: 'JetBrains Mono', monospace;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+        .cli-close:hover { color: var(--accent-alert); }
+
+        kbd {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.72rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-bottom-width: 2px;
+            border-radius: 4px;
+            padding: 0.1rem 0.45rem;
+            color: var(--accent-success);
+        }
+
+        .print-only { display: none; }
+
+        @media print {
+            header, #particles, .scanlines, #boot-sequence, #cli-overlay,
+            #back-to-top, #scroll-progress, .cta-group, #videos,
+            #print-cv, .boot-hint, footer .shortcuts, .telemetry-note, .arch-wrap { display: none !important; }
+            body { background: #fff; color: #111; line-height: 1.45; }
+            .container { max-width: 100%; padding: 0; }
+            section, .hero { padding: 0.9rem 0 !important; min-height: 0 !important; page-break-inside: avoid; }
+            .section-alt { background: #fff; }
+            .section-header { margin-bottom: 1rem; }
+            .section-title, .hero-content h1, .talk-title, .timeline-role, .contact-info h3 {
+                color: #111 !important;
+                -webkit-text-fill-color: #111 !important;
+                background: none !important;
+            }
+            .section-desc, .timeline-desc, .talk-venue, .telemetry-sub, .repo-desc,
+            .cert-text p, .hero-content .description, .terminal-output { color: #333 !important; }
+            .section-tag, .timeline-date, .skill-level, .telemetry-value { color: #111 !important; }
+            .timeline-item, .terminal-line { opacity: 1 !important; transform: none !important; }
+            .timeline::before, .timeline-item::before { display: none; }
+            .timeline { padding-left: 0; }
+            .stat-card, .talk-card, .skill-category, .cert-item, .telemetry-card,
+            .terminal-window, .repo-card { border: 1px solid #ccc !important; box-shadow: none !important; background: #fff !important; }
+            .hero-grid, .contact-grid { grid-template-columns: 1fr; gap: 1rem; }
+            .hero-stats { grid-template-columns: repeat(3, 1fr); }
+            .skills-grid, .certs-grid, .talks-grid, .telemetry-grid, .projects-grid { grid-template-columns: repeat(2, 1fr); gap: 0.6rem; }
+            .tag, .talk-meta, .terminal-prompt, .terminal-command { color: #333 !important; border-color: #ccc; }
+            a { color: #111 !important; text-decoration: none !important; }
+            .print-only { display: block !important; }
+        }
+
+        /* Responsive */
+        @media (max-width: 860px) {
+            .nav-toggle { display: block; }
+            .nav-links {
+                display: none;
+                position: absolute;
+                top: 100%; left: 0; right: 0;
+                flex-direction: column;
+                gap: 0;
+                background: rgba(5, 8, 15, 0.97);
+                border-bottom: 1px solid var(--border);
+                padding: 0.5rem 2rem 1rem;
+            }
+            .nav-links.open { display: flex; }
+            .nav-links li { padding: 0.6rem 0; }
+            .status-indicator span:last-child { display: none; }
+        }
+        @media (max-width: 768px) {
+            .hero-grid, .contact-grid { grid-template-columns: 1fr; }
+            .hero-content h1 { font-size: 2.2rem; }
+            .talks-grid, .skills-grid, .certs-grid, .videos-grid { grid-template-columns: 1fr; }
+            .hero-stats { grid-template-columns: 1fr; }
+            section { padding: 4rem 0; }
+            #boot-sequence { font-size: 12px; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            html { scroll-behavior: auto; }
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+            #particles, .scanlines { display: none; }
+        }
+
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg-primary); }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--accent-success); }
+
+        .mono { font-family: 'JetBrains Mono', monospace; }
+        .gradient-text {
+            background: linear-gradient(135deg, var(--accent-success), var(--accent-info));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+    </style>
+</head>
+<body id="top">
+
+    <a href="#about" class="skip-link">Skip to content</a>
+    <div id="scroll-progress" aria-hidden="true"></div>
+    <div class="scanlines" aria-hidden="true"></div>
+
+    <div id="boot-sequence" role="status" aria-label="Loading sequence">
+        <div class="boot-inner" id="boot-inner"></div>
+        <div class="boot-hint" style="max-width: 760px; margin-left: auto; margin-right: auto; width: 100%;">» loading portfolio… click to skip</div>
+    </div>
+    <canvas id="particles" aria-hidden="true"></canvas>
+
+    <header id="site-header">
+        <nav class="container" aria-label="Main navigation">
+            <a href="#top" class="logo">alam_ahmed.tf</a>
+            <ul class="nav-links" id="nav-links">
+                <li><a href="#about" data-spy="about">/about</a></li>
+                <li><a href="#experience" data-spy="experience">/experience</a></li>
+                <li><a href="#videos" data-spy="videos">/videos</a></li>
+                <li><a href="#talks" data-spy="talks">/talks</a></li>
+                <li><a href="#writing" data-spy="writing">/writing</a></li>
+                <li><a href="#projects" data-spy="projects">/projects</a></li>
+                <li><a href="#skills" data-spy="skills">/skills</a></li>
+                <li><a href="#contact" data-spy="contact">/contact</a></li>
+            </ul>
+            <div class="status-indicator">
+                <span class="status-dot" aria-hidden="true"></span>
+                <span>SYSTEM ONLINE</span>
+            </div>
+            <button class="nav-toggle" id="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">≡</button>
+        </nav>
+    </header>
+
+    <main>
+    <div class="container print-only" style="padding-top: 0;">
+        <h1 style="font-family: 'JetBrains Mono', monospace; font-size: 1.6rem;">Alam Ahmed — Cloud Engineer</h1>
+        <p style="font-size: 0.85rem; color: #333;">
+            Hemel Hempstead, UK · alamzaibahmad615@gmail.com · linkedin.com/in/alam-ahmed-cloud-engineer · github.com/alam-cloud
+        </p>
+        <hr style="border: none; border-top: 1px solid #ccc; margin: 0.6rem 0;">
+    </div>
+    <section class="hero" id="about">
+        <div class="container">
+            <div class="hero-grid">
+                <div class="hero-content">
+                    <h1 id="hero-name" data-text="Alam Ahmed">Alam Ahmed</h1>
+                    <div class="subtitle" id="typewriter" aria-live="polite"></div>
+                    <p class="description">
+                        From NOC trenches to cloud architecture. I design and automate infrastructure across AWS and Azure using Terraform and Ansible, orchestrate with Docker and Kubernetes, and enforce security with Python, Bash, and Security as Code tools like OPA and Conftest.
+                    </p>
+                    <div class="hero-stats">
+                        <div class="stat-card">
+                            <div class="stat-value" data-count="4">0</div>
+                            <div class="stat-label">Years Cloud Exp</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" data-count="11">0</div>
+                            <div class="stat-label">Talks & Publications</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" data-count="52">0</div>
+                            <div class="stat-label">Certifications</div>
+                        </div>
+                    </div>
+                    <div class="cta-group">
+                        <a href="https://www.linkedin.com/in/alam-ahmed-cloud-engineer" target="_blank" rel="noopener noreferrer" class="btn btn-primary">
+                            <span>&#8599;</span> Connect on LinkedIn
+                        </a>
+                        <a href="mailto:alamzaibahmad615@gmail.com" class="btn btn-secondary">
+                            <span>&#9993;</span> Initiate Contact
+                        </a>
+                    </div>
+                </div>
+
+                <div class="terminal-window" aria-label="Terminal introduction">
+                    <div class="terminal-header">
+                        <div class="terminal-btn red"></div>
+                        <div class="terminal-btn yellow"></div>
+                        <div class="terminal-btn green"></div>
+                        <span class="terminal-title">alam@cloud-engineer:~</span>
+                    </div>
+                    <div class="terminal-body" id="terminal-body">
+                        <div class="terminal-line">
+                            <span class="terminal-prompt">alam@cloud-engineer:~$</span>
+                            <span class="terminal-command">whoami</span>
+                        </div>
+                        <div class="terminal-line terminal-output">
+                            Cloud Engineer | AWS Community Builder | DevTools Advocate
+                        </div>
+                        <div class="terminal-line">
+                            <span class="terminal-prompt">alam@cloud-engineer:~$</span>
+                            <span class="terminal-command">cat current_role.txt</span>
+                        </div>
+                        <div class="terminal-line terminal-output">
+                            Managed Services Support Analyst @ boxxe (NOC)<br>
+                            AWS Community Builder - Dev-Tools (Feb 2026 - Present)
+                        </div>
+                        <div class="terminal-line">
+                            <span class="terminal-prompt">alam@cloud-engineer:~$</span>
+                            <span class="terminal-command">terraform plan -target=career</span>
+                        </div>
+                        <div class="terminal-line terminal-output terminal-success">
+                            + Seeking Junior Cloud / DevOps Engineer roles<br>
+                            + Pursuing AZ-104 certification<br>
+                            + Building secure, scalable platforms
+                        </div>
+                        <div class="terminal-line">
+                            <span class="terminal-prompt">alam@cloud-engineer:~$</span>
+                            <span class="terminal-command">kubectl get pods --all-namespaces</span>
+                        </div>
+                        <div class="terminal-line terminal-output">
+                            <span class="terminal-success">Running:</span> Terraform, Docker, K8s, Python, Bash<br>
+                            <span class="terminal-warn">Pending:</span> AZ-104, Next speaking gig
+                        </div>
+                        <div class="terminal-line">
+                            <span class="terminal-prompt">alam@cloud-engineer:~$</span>
+                            <span class="cursor"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="telemetry" class="section-alt" style="padding: 3.5rem 0;">
+        <div class="container">
+            <div class="telemetry-grid">
+                <div class="telemetry-card">
+                    <div class="telemetry-label">Career Uptime</div>
+                    <div class="telemetry-value"><span id="uptime-days">—</span> days</div>
+                    <div class="telemetry-sub">since Mar 2023 · zero critical failures</div>
+                    <canvas class="spark" width="72" height="28" data-color="#00d4aa" aria-hidden="true"></canvas>
+                </div>
+                <div class="telemetry-card">
+                    <div class="telemetry-label">Tickets Resolved</div>
+                    <div class="telemetry-value info"><span data-tele="1400">0</span>+</div>
+                    <div class="telemetry-sub">P1–P4 · high CSAT @ Computors</div>
+                    <canvas class="spark" width="72" height="28" data-color="#38bdf8" aria-hidden="true"></canvas>
+                </div>
+                <div class="telemetry-card">
+                    <div class="telemetry-label">Certifications</div>
+                    <div class="telemetry-value"><span data-tele="52">0</span></div>
+                    <div class="telemetry-sub">verified on Credly</div>
+                </div>
+                <div class="telemetry-card">
+                    <div class="telemetry-label">Caffeine Level</div>
+                    <div class="telemetry-value warn"><span id="coffee-cups">—</span> cups</div>
+                    <div class="telemetry-sub">today · status: OPTIMAL</div>
+                    <canvas class="spark" width="72" height="28" data-color="#ffd93d" aria-hidden="true"></canvas>
+                </div>
+                <div class="telemetry-card">
+                    <div class="telemetry-label">Interview Status</div>
+                    <div class="telemetry-value">OPERATIONAL</div>
+                    <div class="telemetry-sub">open to junior cloud / DevOps roles</div>
+                </div>
+                <div class="telemetry-card">
+                    <div class="telemetry-label">Region</div>
+                    <div class="telemetry-value info">eu-west-2</div>
+                    <div class="telemetry-sub">Hemel Hempstead → London · remote OK</div>
+                </div>
+            </div>
+            <div class="telemetry-note">// gauges simulated for ambience — the career stats are real</div>
+        </div>
+    </section>
+
+    <section id="experience">
+        <div class="container">
+            <div class="section-header">
+                <div class="section-tag">Deployment History</div>
+                <h2 class="section-title">Experience & <span class="gradient-text">Deployments</span></h2>
+                <p class="section-desc">Infrastructure doesn't build itself. Here's my production history.</p>
+            </div>
+            <div class="timeline">
+                <div class="timeline-item">
+                    <div class="timeline-header">
+                        <span class="timeline-role">Managed Services Support Analyst (NOC)</span>
+                        <span class="timeline-date">May 2024 - Present</span>
+                    </div>
+                    <div class="timeline-company">boxxe — Hemel Hempstead</div>
+                    <div class="timeline-desc">
+                        Frontline production incident response and critical infrastructure monitoring. Troubleshooting production systems, maintaining high availability, and ensuring SLA compliance across managed services.
+                    </div>
+                    <div class="timeline-tags">
+                        <span class="tag">Incident Response</span>
+                        <span class="tag">Monitoring</span>
+                        <span class="tag">SLA Management</span>
+                    </div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-header">
+                        <span class="timeline-role">AWS Community Builder — Dev-Tools</span>
+                        <span class="timeline-date">Feb 2026 - Present</span>
+                    </div>
+                    <div class="timeline-company">Amazon Web Services — London</div>
+                    <div class="timeline-desc">
+                        Sharing knowledge on cloud security best practices through blog posts, talks, and open-source. Engaging with AWS product teams, collaborating with 4,000+ global builders, mentoring peers, and utilizing AWS credits to experiment with secure architectures.
+                    </div>
+                    <div class="timeline-tags">
+                        <span class="tag">AWS</span>
+                        <span class="tag">Community</span>
+                        <span class="tag">DevTools</span>
+                        <span class="tag">Security</span>
+                    </div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-header">
+                        <span class="timeline-role">Author & Technical Contributor</span>
+                        <span class="timeline-date">Mar 2025 - Dec 2025</span>
+                    </div>
+                    <div class="timeline-company">Envoy Proxy — Remote</div>
+                    <div class="timeline-desc">
+                        Published Version 2 of the Envoy AI Gateway documentation (serving 10K+ users). Contributed features to the VS Code extension for Envoy Proxy. Collaborated with open-source communities to improve API gateway tooling.
+                    </div>
+                    <div class="timeline-tags">
+                        <span class="tag">Open Source</span>
+                        <span class="tag">Technical Writing</span>
+                        <span class="tag">API Gateway</span>
+                    </div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-header">
+                        <span class="timeline-role">First Line Network Engineer</span>
+                        <span class="timeline-date">Mar 2023 - May 2024</span>
+                    </div>
+                    <div class="timeline-company">Computors Ltd — UK</div>
+                    <div class="timeline-desc">
+                        Resolved 1,400+ tickets (P1-P4) with high customer satisfaction. Configured and deployed 400+ devices remotely. Hands-on experience with FTTC, leased lines, managed switches, hosted desktops, firewalls, VoIP, and Microsoft 365.
+                    </div>
+                    <div class="timeline-tags">
+                        <span class="tag">Networking</span>
+                        <span class="tag">MSP</span>
+                        <span class="tag">Firewalls</span>
+                        <span class="tag">VoIP</span>
+                    </div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-header">
+                        <span class="timeline-role">Discovery Programme Participant</span>
+                        <span class="timeline-date">Mar 2024</span>
+                    </div>
+                    <div class="timeline-company">Zen Internet — Manchester</div>
+                    <div class="timeline-desc">
+                        Week-long immersive experience with UK's largest B Corp broadband provider. Deep dive into FTTP, FTTC technologies, customer service excellence, and broadband troubleshooting.
+                    </div>
+                    <div class="timeline-tags">
+                        <span class="tag">FTTP</span>
+                        <span class="tag">FTTC</span>
+                        <span class="tag">ISP</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="videos" class="section-alt" style="padding-top: 4rem;">
+        <div class="container">
+            <div class="section-header">
+                <div class="section-tag">Video Evidence</div>
+                <h2 class="section-title">Featured <span class="gradient-text">Talks</span></h2>
+                <p class="section-desc">Watch me present on cloud-native security, infrastructure automation, and DevOps practices.</p>
+            </div>
+            <div class="videos-grid">
+                <div class="video-card">
+                    <div class="video-embed">
+                        <iframe src="https://www.youtube.com/embed/QUyqRie6-tU" title="Terraforming the Well-Architected Way" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                    </div>
+                    <div class="video-body">
+                        <div class="talk-type speaker">&#9679; AWS London WAUG</div>
+                        <h3>Terraforming the Well-Architected Way</h3>
+                        <p>AWS Head Office, London — 33 attendees</p>
+                    </div>
+                </div>
+                <div class="video-card">
+                    <div class="video-embed">
+                        <iframe src="https://www.youtube.com/embed/IzayRY93z88" title="eBPF: Revolutionizing Cloud-Native Security" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                    </div>
+                    <div class="video-body">
+                        <div class="talk-type speaker">&#9679; Cloud Native London</div>
+                        <h3>eBPF: Revolutionizing Cloud-Native Security</h3>
+                        <p>London — 50 attendees</p>
+                    </div>
+                </div>
+                <div class="video-card">
+                    <div class="video-embed">
+                        <iframe src="https://www.youtube.com/embed/eiNhcvhAvX8" title="Security as Code with Terraform & OPA" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                    </div>
+                    <div class="video-body">
+                        <div class="talk-type speaker">&#9679; Yorkshire DevOps</div>
+                        <h3>Security as Code with Terraform & OPA</h3>
+                        <p>Yorkshire — 35 attendees</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="talks">
+        <div class="container">
+            <div class="section-header">
+                <div class="section-tag">Event Logs</div>
+                <h2 class="section-title">Talks & <span class="gradient-text">Podcasts</span></h2>
+                <p class="section-desc">Sharing knowledge with the community. Because building in public is how we level up.</p>
+            </div>
+            <div class="talks-grid">
+                <div class="talk-card">
+                    <div class="talk-type podcast">&#9679; Podcast</div>
+                    <h3 class="talk-title">LogiCast AWS News Podcast — S5E27</h3>
+                    <div class="talk-venue">Logicata — Secrets Manager, GuardDuty AI, Trillion-Dollar Billing</div>
+                    <div class="talk-meta">
+                        <span>Aug 2026</span>
+                        <span style="opacity: 0.5;">Link soon</span>
+                    </div>
+                </div>
+                <div class="talk-card">
+                    <div class="talk-type speaker">&#9679; Speaker</div>
+                    <h3 class="talk-title">Terraforming the Well-Architected Way</h3>
+                    <div class="talk-venue">AWS London Well-Architected User Group — AWS Head Office (33 attendees)</div>
+                    <div class="talk-meta">
+                        <span>Jul 2026</span>
+                        <a href="https://youtu.be/QUyqRie6-tU" target="_blank" rel="noopener noreferrer" class="talk-link">Watch &rarr;</a>
+                    </div>
+                </div>
+                <div class="talk-card">
+                    <div class="talk-type speaker">&#9679; Speaker</div>
+                    <h3 class="talk-title">Shifting Security Left — Building Secure CI/CD for Multi-Cloud</h3>
+                    <div class="talk-venue">London DevOps Meetup</div>
+                    <div class="talk-meta">
+                        <span>Mar 2026</span>
+                        <span style="opacity: 0.5;">Link soon</span>
+                    </div>
+                </div>
+                <div class="talk-card">
+                    <div class="talk-type speaker">&#9679; Speaker</div>
+                    <h3 class="talk-title">eBPF: Revolutionizing Cloud-Native Security</h3>
+                    <div class="talk-venue">Cloud Native London — 50 attendees</div>
+                    <div class="talk-meta">
+                        <span>Feb 2026</span>
+                        <a href="https://youtu.be/IzayRY93z88" target="_blank" rel="noopener noreferrer" class="talk-link">Watch &rarr;</a>
+                    </div>
+                </div>
+                <div class="talk-card">
+                    <div class="talk-type speaker">&#9679; Speaker</div>
+                    <h3 class="talk-title">Defending the Cloud-Native Frontier: Security as Code with Terraform & OPA</h3>
+                    <div class="talk-venue">Yorkshire DevOps — 35 attendees</div>
+                    <div class="talk-meta">
+                        <span>Oct 2025</span>
+                        <a href="https://youtu.be/eiNhcvhAvX8?si=J2YizLzjecnxfso0" target="_blank" rel="noopener noreferrer" class="talk-link">Watch &rarr;</a>
+                    </div>
+                </div>
+                <div class="talk-card">
+                    <div class="talk-type speaker">&#9679; Speaker</div>
+                    <h3 class="talk-title">Elastic Observability — Automating Elastic with Terraform</h3>
+                    <div class="talk-venue">Elastic London — 18 attendees</div>
+                    <div class="talk-meta">
+                        <span>Sep 2025</span>
+                        <a href="https://github.com/InfraPlatformer/elastic-terraform-demo" target="_blank" rel="noopener noreferrer" class="talk-link">Repo &rarr;</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="writing">
+        <div class="container">
+            <div class="section-header">
+                <div class="section-tag">Published Intelligence</div>
+                <h2 class="section-title">Writing on <span class="gradient-text">AWS Builder Center</span></h2>
+                <p class="section-desc">Long-form articles on cloud security, IAM, eBPF, and developer velocity — published as an AWS Community Builder.</p>
+            </div>
+            <div class="talks-grid">
+                <div class="talk-card">
+                    <div class="talk-type author">&#9679; Article</div>
+                    <h3 class="talk-title">The Next Frontier in IAM: Manufacturing Identity Context</h3>
+                    <div class="talk-venue">From "who are you" to "where are you coming from" — building verifiable network perimeters with AWS VPC endpoint condition keys</div>
+                    <div class="talk-meta">
+                        <span>2026</span>
+                        <a href="https://builder.aws.com/content/3DJRRyyA8ui8OWYptbZIqJntgxM/the-next-frontier-in-iam-manufacturing-identity-context-from-who-are-you-to-where-are-you-coming-from-building-verifiable-network-perimeters-with-aws-vpc-endpoint-condition-keys" target="_blank" rel="noopener noreferrer" class="talk-link">Read &rarr;</a>
+                    </div>
+                </div>
+                <div class="talk-card">
+                    <div class="talk-type author">&#9679; Article &middot; &#11088; Spotlight Pick</div>
+                    <h3 class="talk-title">The Unseen Pipeline: Engineering Developer Velocity with AWS DevTools in 2026</h3>
+                    <div class="talk-venue">Featured in the AWS Community Builders Spotlight — how Kiro, AgentCore and Transform are reshaping developer experience</div>
+                    <div class="talk-meta">
+                        <span>Jun 2026</span>
+                        <a href="https://builder.aws.com/content/3ElShp5DBoeQCRfc5kaBhwsruIe/the-unseen-pipeline-engineering-developer-velocity-with-aws-devtools-in-2026" target="_blank" rel="noopener noreferrer" class="talk-link">Read &rarr;</a>
+                    </div>
+                </div>
+                <div class="talk-card">
+                    <div class="talk-type author">&#9679; Article</div>
+                    <h3 class="talk-title">The Zero-Trust Fortress: Architecting Impenetrable AWS Environments</h3>
+                    <div class="talk-venue">Eliminating standing privileges with Resource Control Policies and ephemeral credentials — data perimeters and continuous compliance</div>
+                    <div class="talk-meta">
+                        <span>Apr 2026</span>
+                        <a href="https://builder.aws.com/content/3CAyBe68kyewNBVJBaVvNgvrdqf/the-zero-trust-fortress-architecting-impenetrable-aws-environments-with-resource-control-policies-and-ephemeral-credentials" target="_blank" rel="noopener noreferrer" class="talk-link">Read &rarr;</a>
+                    </div>
+                </div>
+                <div class="talk-card">
+                    <div class="talk-type author">&#9679; Article</div>
+                    <h3 class="talk-title">Automating Cloud Defense with IaC &amp; eBPF on AWS</h3>
+                    <div class="talk-venue">Combining eBPF-based security tools (Falco, Tetragon) with infrastructure as code for runtime threat detection</div>
+                    <div class="talk-meta">
+                        <span>Apr 2026</span>
+                        <a href="https://builder.aws.com/content/3BtlMnU1yojvC6zRCErCRo6f6x7/automating-cloud-defense-with-iac-and-ebpf-on-aws" target="_blank" rel="noopener noreferrer" class="talk-link">Read &rarr;</a>
+                    </div>
+                </div>
+                <div class="talk-card">
+                    <div class="talk-type author">&#9679; Article</div>
+                    <h3 class="talk-title">Breaking into Cloud: My Journey as an Aspiring Platform Engineer</h3>
+                    <div class="talk-venue">The career-switch playbook — from first-line networking to cloud engineering, and what actually worked</div>
+                    <div class="talk-meta">
+                        <span>Jul 2025</span>
+                        <a href="https://builder.aws.com/content/2zm7OJ7NUq3YDnvGCc7thxUoQM0/breaking-into-cloud-my-journey-as-an-aspiring-platform-engineer" target="_blank" rel="noopener noreferrer" class="talk-link">Read &rarr;</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="projects" class="section-alt">
+        <div class="container">
+            <div class="section-header">
+                <div class="section-tag">Open Source</div>
+                <h2 class="section-title">Projects & <span class="gradient-text">Repos</span> <span class="live-badge">LIVE · GITHUB API</span></h2>
+                <p class="section-desc">Pulled fresh from github.com/alam-cloud every visit (older work lives on my legacy account, InfraPlatformer). What I'm building, breaking, and documenting.</p>
+            </div>
+            <div class="projects-grid" id="projects-grid">
+                <div class="repo-skeleton"></div>
+                <div class="repo-skeleton"></div>
+                <div class="repo-skeleton"></div>
+            </div>
+        </div>
+    </section>
+
+    <section id="skills">
+        <div class="container">
+            <div class="section-header">
+                <div class="section-tag">Resource Utilization</div>
+                <h2 class="section-title">Technical <span class="gradient-text">Stack</span></h2>
+                <p class="section-desc">Tools and technologies I use to build secure, scalable infrastructure.</p>
+            </div>
+            <div class="skills-grid">
+                <div class="skill-category">
+                    <h3>Infrastructure as Code</h3>
+                    <div class="skill-item">
+                        <div class="skill-header"><span class="skill-name">Terraform</span><span class="skill-level">95%</span></div>
+                        <div class="skill-bar"><div class="skill-fill" data-width="95"></div></div>
+                    </div>
+                    <div class="skill-item">
+                        <div class="skill-header"><span class="skill-name">Ansible</span><span class="skill-level">80%</span></div>
+                        <div class="skill-bar"><div class="skill-fill" data-width="80"></div></div>
+                    </div>
+                    <div class="skill-item">
+                        <div class="skill-header"><span class="skill-name">Open Policy Agent (OPA)</span><span class="skill-level">85%</span></div>
+                        <div class="skill-bar"><div class="skill-fill" data-width="85"></div></div>
+                    </div>
+                </div>
+                <div class="skill-category">
+                    <h3>Cloud Platforms</h3>
+                    <div class="skill-item">
+                        <div class="skill-header"><span class="skill-name">AWS</span><span class="skill-level">90%</span></div>
+                        <div class="skill-bar"><div class="skill-fill" data-width="90"></div></div>
+                    </div>
+                    <div class="skill-item">
+                        <div class="skill-header"><span class="skill-name">Azure</span><span class="skill-level">70%</span></div>
+                        <div class="skill-bar"><div class="skill-fill" data-width="70"></div></div>
+                    </div>
+                    <div class="skill-item">
+                        <div class="skill-header"><span class="skill-name">Security as Code</span><span class="skill-level">85%</span></div>
+                        <div class="skill-bar"><div class="skill-fill" data-width="85"></div></div>
+                    </div>
+                </div>
+                <div class="skill-category">
+                    <h3>Containers & Orchestration</h3>
+                    <div class="skill-item">
+                        <div class="skill-header"><span class="skill-name">Docker</span><span class="skill-level">90%</span></div>
+                        <div class="skill-bar"><div class="skill-fill" data-width="90"></div></div>
+                    </div>
+                    <div class="skill-item">
+                        <div class="skill-header"><span class="skill-name">Kubernetes</span><span class="skill-level">80%</span></div>
+                        <div class="skill-bar"><div class="skill-fill" data-width="80"></div></div>
+                    </div>
+                    <div class="skill-item">
+                        <div class="skill-header"><span class="skill-name">eBPF / Cilium / Falco</span><span class="skill-level">75%</span></div>
+                        <div class="skill-bar"><div class="skill-fill" data-width="75"></div></div>
+                    </div>
+                </div>
+                <div class="skill-category">
+                    <h3>Automation & Scripting</h3>
+                    <div class="skill-item">
+                        <div class="skill-header"><span class="skill-name">Python</span><span class="skill-level">85%</span></div>
+                        <div class="skill-bar"><div class="skill-fill" data-width="85"></div></div>
+                    </div>
+                    <div class="skill-item">
+                        <div class="skill-header"><span class="skill-name">Bash</span><span class="skill-level">90%</span></div>
+                        <div class="skill-bar"><div class="skill-fill" data-width="90"></div></div>
+                    </div>
+                    <div class="skill-item">
+                        <div class="skill-header"><span class="skill-name">GitHub Actions / CI/CD</span><span class="skill-level">80%</span></div>
+                        <div class="skill-bar"><div class="skill-fill" data-width="80"></div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="architecture" class="section-alt">
+        <div class="container">
+            <div class="section-header">
+                <div class="section-tag">Reference Architecture</div>
+                <h2 class="section-title">How I <span class="gradient-text">Build</span></h2>
+                <p class="section-desc">The pattern I reach for: edge-cached, load-balanced, containerised, policy-checked, observable. Watch the packets flow.</p>
+            </div>
+            <div class="arch-wrap">
+                <svg viewBox="0 0 940 330" role="img" aria-label="Diagram of a secure cloud platform: users connect through CDN and WAF to a load balancer, into a Kubernetes cluster backed by a database and object storage, with policy checks and observability alongside.">
+                    <path id="ap1" class="arch-edge" d="M130,155 H190"/>
+                    <path id="ap2" class="arch-edge" d="M320,155 H380"/>
+                    <path id="ap3" class="arch-edge" d="M500,155 H560"/>
+                    <path id="ap4" class="arch-edge" d="M760,155 H800"/>
+                    <path class="arch-edge-dashed" d="M440,70 V130"/>
+                    <path class="arch-edge-dashed" d="M450,250 V280 H660 V255"/>
+
+                    <rect class="arch-node" x="20" y="130" width="110" height="50" rx="8"/>
+                    <text class="arch-text" x="75" y="152" text-anchor="middle">Users</text>
+                    <text class="arch-sub" x="75" y="168" text-anchor="middle">recruiters too</text>
+
+                    <rect class="arch-node" x="190" y="130" width="130" height="50" rx="8"/>
+                    <text class="arch-text" x="255" y="152" text-anchor="middle">CDN + WAF</text>
+                    <text class="arch-sub" x="255" y="168" text-anchor="middle">CloudFront</text>
+
+                    <rect class="arch-node" x="380" y="130" width="120" height="50" rx="8"/>
+                    <text class="arch-text" x="440" y="152" text-anchor="middle">Load Balancer</text>
+                    <text class="arch-sub" x="440" y="168" text-anchor="middle">ALB · TLS</text>
+
+                    <rect class="arch-node arch-node-accent" x="380" y="20" width="130" height="50" rx="8"/>
+                    <text class="arch-text" x="445" y="42" text-anchor="middle">OPA / Conftest</text>
+                    <text class="arch-sub" x="445" y="58" text-anchor="middle">policy as code</text>
+
+                    <rect class="arch-node" x="560" y="60" width="200" height="190" rx="10"/>
+                    <text class="arch-text" x="660" y="85" text-anchor="middle">Kubernetes (EKS)</text>
+                    <rect class="arch-node" x="580" y="100" width="160" height="34" rx="6"/>
+                    <text class="arch-sub" x="660" y="121" text-anchor="middle">pod · app</text>
+                    <rect class="arch-node" x="580" y="142" width="160" height="34" rx="6"/>
+                    <text class="arch-sub" x="660" y="163" text-anchor="middle">pod · app</text>
+                    <rect class="arch-node" x="580" y="184" width="160" height="34" rx="6"/>
+                    <text class="arch-sub" x="660" y="205" text-anchor="middle">pod · Falco / eBPF</text>
+
+                    <rect class="arch-node" x="800" y="130" width="120" height="50" rx="8"/>
+                    <text class="arch-text" x="860" y="152" text-anchor="middle">Data Layer</text>
+                    <text class="arch-sub" x="860" y="168" text-anchor="middle">RDS · S3</text>
+
+                    <rect class="arch-node" x="380" y="250" width="140" height="50" rx="8"/>
+                    <text class="arch-text" x="450" y="272" text-anchor="middle">Observability</text>
+                    <text class="arch-sub" x="450" y="288" text-anchor="middle">Datadog · SIEM</text>
+
+                    <circle r="4" fill="#00d4aa"><animateMotion dur="2.2s" repeatCount="indefinite"><mpath href="#ap1"/></animateMotion></circle>
+                    <circle r="4" fill="#38bdf8"><animateMotion dur="2.6s" begin="0.4s" repeatCount="indefinite"><mpath href="#ap2"/></animateMotion></circle>
+                    <circle r="4" fill="#00d4aa"><animateMotion dur="2.4s" begin="0.8s" repeatCount="indefinite"><mpath href="#ap3"/></animateMotion></circle>
+                    <circle r="4" fill="#ffd93d"><animateMotion dur="2.8s" begin="0.2s" repeatCount="indefinite"><mpath href="#ap4"/></animateMotion></circle>
+                </svg>
+            </div>
+        </div>
+    </section>
+
+    <section>
+        <div class="container">
+            <div class="section-header">
+                <div class="section-tag">Verified Artifacts</div>
+                <h2 class="section-title">Certifications</h2>
+                <p class="section-desc">52 verified badges on Credly. Here are the highlights most relevant to cloud engineering.</p>
+            </div>
+            <div class="certs-grid">
+                <div class="cert-item">
+                    <div class="cert-icon">&#9729;</div>
+                    <div class="cert-text">
+                        <h4>Well-Architected Proficient</h4>
+                        <p>AWS — Mar 2024</p>
+                    </div>
+                </div>
+                <div class="cert-item">
+                    <div class="cert-icon">&#9729;</div>
+                    <div class="cert-text">
+                        <h4>AWS Knowledge: Security Champion</h4>
+                        <p>AWS — Sep 2025</p>
+                    </div>
+                </div>
+                <div class="cert-item">
+                    <div class="cert-icon">&#9729;</div>
+                    <div class="cert-text">
+                        <h4>AWS Knowledge: Amazon EKS</h4>
+                        <p>AWS — Apr 2025</p>
+                    </div>
+                </div>
+                <div class="cert-item">
+                    <div class="cert-icon">&#128737;</div>
+                    <div class="cert-text">
+                        <h4>Fortinet Certified Associate Cybersecurity</h4>
+                        <p>Fortinet — Expires Jul 2027</p>
+                    </div>
+                </div>
+                <div class="cert-item">
+                    <div class="cert-icon">&#128737;</div>
+                    <div class="cert-text">
+                        <h4>Fortinet Certified Fundamentals Cybersecurity</h4>
+                        <p>Fortinet — Expires Jul 2027</p>
+                    </div>
+                </div>
+                <div class="cert-item">
+                    <div class="cert-icon">&#128230;</div>
+                    <div class="cert-text">
+                        <h4>Chainguard Container Crusader</h4>
+                        <p>Chainguard — Jun 2025</p>
+                    </div>
+                </div>
+                <div class="cert-item">
+                    <div class="cert-icon">&#128039;</div>
+                    <div class="cert-text">
+                        <h4>LFS261: DevOps and SRE Fundamentals</h4>
+                        <p>The Linux Foundation — Aug 2025</p>
+                    </div>
+                </div>
+                <div class="cert-item">
+                    <div class="cert-icon">&#128039;</div>
+                    <div class="cert-text">
+                        <h4>LFS158: Introduction to Kubernetes</h4>
+                        <p>The Linux Foundation — Mar 2025</p>
+                    </div>
+                </div>
+                <div class="cert-item">
+                    <div class="cert-icon">&#128200;</div>
+                    <div class="cert-text">
+                        <h4>Site Reliability Engineer Learning Path</h4>
+                        <p>Datadog — May 2026</p>
+                    </div>
+                </div>
+                <div class="cert-item">
+                    <div class="cert-icon">&#128200;</div>
+                    <div class="cert-text">
+                        <h4>Cloud Security Engineer — Cloud SIEM</h4>
+                        <p>Datadog — May 2026</p>
+                    </div>
+                </div>
+                <div class="cert-item">
+                    <div class="cert-icon">&#128029;</div>
+                    <div class="cert-text">
+                        <h4>Discovery: Platform Engineer</h4>
+                        <p>Isovalent (Cilium) — Sep 2024</p>
+                    </div>
+                </div>
+                <div class="cert-item">
+                    <div class="cert-icon">&#128039;</div>
+                    <div class="cert-text">
+                        <h4>LFD140: GitHub for Open Standards Development</h4>
+                        <p>The Linux Foundation — Jan 2026</p>
+                    </div>
+                </div>
+                <div class="cert-item">
+                    <div class="cert-icon">&#128203;</div>
+                    <div class="cert-text">
+                        <h4>AZ-104 (In Progress)</h4>
+                        <p>Microsoft Azure Administrator — Currently pursuing</p>
+                    </div>
+                </div>
+            </div>
+            <div style="text-align: center; margin-top: 2rem;">
+                <a href="https://www.credly.com/users/alam-zaib-ahmad/badges" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="display: inline-flex;">
+                    <span>&#127942;</span> View all 52 badges on Credly
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <section id="contact" class="section-alt">
+        <div class="container">
+            <div class="section-header">
+                <div class="section-tag">Connection Endpoints</div>
+                <h2 class="section-title">Let's <span class="gradient-text">Connect</span></h2>
+                <p class="section-desc">If you're building secure, scalable platforms — let's talk.</p>
+            </div>
+            <div class="contact-grid">
+                <div class="contact-info">
+                    <h3>Open to Junior Cloud / DevOps Engineer Roles</h3>
+                    <p style="color: var(--text-secondary); margin-bottom: 1rem;">
+                        Currently based in Hemel Hempstead, England. Open to remote, hybrid, and London-area opportunities.
+                    </p>
+                    <p style="color: var(--text-secondary);">
+                        <span class="mono" style="color: var(--accent-success);">Status:</span> Available for opportunities<br>
+                        <span class="mono" style="color: var(--accent-success);">Location:</span> Hemel Hempstead, UK<br>
+                        <span class="mono" style="color: var(--accent-success);">Clearance:</span> Open to work
+                    </p>
+                    <div style="margin-top: 1.5rem;">
+                        <button class="btn btn-secondary" id="print-cv">
+                            <span>&#128424;</span> Print / Save as CV (PDF)
+                        </button>
+                    </div>
+                </div>
+                <div class="contact-links">
+                    <a href="mailto:alamzaibahmad615@gmail.com" class="contact-link">
+                        <div class="icon">&#9993;</div>
+                        <div>
+                            <div style="font-weight: 600;">Email</div>
+                            <div style="font-size: 0.8rem; color: var(--text-secondary);">alamzaibahmad615@gmail.com</div>
+                        </div>
+                    </a>
+                    <a href="https://www.linkedin.com/in/alam-ahmed-cloud-engineer" target="_blank" rel="noopener noreferrer" class="contact-link">
+                        <div class="icon">&#128188;</div>
+                        <div>
+                            <div style="font-weight: 600;">LinkedIn</div>
+                            <div style="font-size: 0.8rem; color: var(--text-secondary);">linkedin.com/in/alam-ahmed-cloud-engineer</div>
+                        </div>
+                    </a>
+                    <a href="https://github.com/alam-cloud" target="_blank" rel="noopener noreferrer" class="contact-link">
+                        <div class="icon">&#9889;</div>
+                        <div>
+                            <div style="font-weight: 600;">GitHub</div>
+                            <div style="font-size: 0.8rem; color: var(--text-secondary);">github.com/alam-cloud</div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>Built with HTML, CSS & caffeine. Deployed on <span style="color: var(--accent-success);">GitHub Pages</span>.</p>
+            <p style="margin-top: 0.5rem; opacity: 0.6;">&copy; <span id="footer-year">2026</span> Alam Ahmed. All systems operational.</p>
+            <p class="shortcuts" style="margin-top: 0.75rem; opacity: 0.6;">
+                shortcuts: <kbd>~</kbd> terminal &middot; <kbd>1</kbd>–<kbd>8</kbd> jump to section &middot; try <span class="mono" style="color: var(--accent-warn);">sudo hire alam</span>
+            </p>
+        </div>
+    </footer>
+
+    <button id="back-to-top" aria-label="Back to top">&#8593;</button>
+
+    <div id="cli-overlay" role="dialog" aria-label="Interactive terminal" aria-modal="true">
+        <div class="cli-window">
+            <div class="terminal-header">
+                <div class="terminal-btn red"></div>
+                <div class="terminal-btn yellow"></div>
+                <div class="terminal-btn green"></div>
+                <span class="terminal-title">guest@alam-ahmed.dev — type 'help'</span>
+                <button class="cli-close" id="cli-close">[esc]</button>
+            </div>
+            <div class="cli-body" id="cli-output"></div>
+            <div class="cli-input-row">
+                <span class="prompt">guest:~$</span>
+                <input id="cli-input" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Terminal input">
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+        /* ---------- Boot Sequence (skippable) ---------- */
+        const bootLines = [
+            { text: 'BIOS Date: 08/13/2026 14:26:00 UTC', type: 'info', delay: 80 },
+            { text: 'CPU: Cloud Engineer v2.0', type: 'success', delay: 180 },
+            { text: 'Memory Test: 640K OK... 1048576K OK', type: 'success', delay: 280 },
+            { text: 'Initializing Terraform providers...', type: 'info', delay: 420 },
+            { text: '  - provider[registry.terraform.io/hashicorp/aws] ~> 5.0', type: 'info', delay: 520 },
+            { text: '  - provider[registry.terraform.io/hashicorp/azurerm] ~> 3.0', type: 'info', delay: 620 },
+            { text: '  - provider[registry.terraform.io/hashicorp/kubernetes] ~> 2.0', type: 'info', delay: 720 },
+            { text: 'Loading modules: networking, compute, security...', type: 'warn', delay: 880 },
+            { text: '  [WARN] Legacy MSP experience detected. Compiling to cloud-native...', type: 'warn', delay: 1040 },
+            { text: '  [OK] NOC troubleshooting skills imported successfully', type: 'success', delay: 1200 },
+            { text: 'Starting Kubernetes cluster...', type: 'info', delay: 1360 },
+            { text: '  Pod "alam-ahmed-portfolio" created', type: 'success', delay: 1520 },
+            { text: '  Service exposed on port 443', type: 'success', delay: 1620 },
+            { text: 'Running security scan (OPA + Conftest)...', type: 'info', delay: 1780 },
+            { text: '  [PASS] No misconfigurations found', type: 'success', delay: 1940 },
+            { text: '  [PASS] Security as Code policies enforced', type: 'success', delay: 2040 },
+            { text: 'Applying infrastructure...', type: 'info', delay: 2200 },
+            { text: '  aws_s3_bucket.portfolio: Creation complete', type: 'success', delay: 2360 },
+            { text: '  aws_cloudfront_distribution.cdn: Creation complete', type: 'success', delay: 2460 },
+            { text: '  kubernetes_ingress.portfolio: Creation complete', type: 'success', delay: 2560 },
+            { text: 'Apply complete! Resources: 42 added, 0 changed, 0 destroyed.', type: 'success', delay: 2720 },
+            { text: 'Outputs:', type: 'info', delay: 2880 },
+            { text: '  portfolio_url = "https://alam-ahmed.dev"', type: 'success', delay: 2980 },
+            { text: '  status      = "READY_FOR_PRODUCTION"', type: 'success', delay: 3080 },
+            { text: '', type: 'info', delay: 3220 },
+            { text: '[WARN] Detected recruiter eyeballs. Increasing font size by 0% and pretending to be humble...', type: 'warn', delay: 3320 },
+            { text: 'Boot sequence complete. Welcome, recruiter.', type: 'success', delay: 3600 },
+        ];
+
+        const bootEl = document.getElementById('boot-sequence');
+        const bootInner = document.getElementById('boot-inner');
+        const bootTimers = [];
+        let bootDone = false;
+
+        function finishBoot() {
+            if (bootDone) return;
+            bootDone = true;
+            bootTimers.forEach(clearTimeout);
+            bootEl.classList.add('done');
+            afterBoot();
+        }
+
+        if (prefersReduced) {
+            finishBoot();
+        } else {
+            bootLines.forEach((line, i) => {
+                bootTimers.push(setTimeout(() => {
+                    const div = document.createElement('div');
+                    div.className = `boot-line ${line.type}`;
+                    div.textContent = line.text;
+                    bootInner.appendChild(div);
+                    if (i === bootLines.length - 1) {
+                        bootTimers.push(setTimeout(finishBoot, 1100));
+                    }
+                }, line.delay));
+            });
+            bootEl.addEventListener('click', finishBoot);
+            window.addEventListener('keydown', function onKey() {
+                finishBoot();
+                window.removeEventListener('keydown', onKey);
+            });
+            // Failsafe: never hold visitors on the boot screen longer than 4s,
+            // even if a timer is throttled (background tab, slow device).
+            bootTimers.push(setTimeout(finishBoot, 4000));
+        }
+
+        /* ---------- Post-boot: terminal reveal, typewriter, counters ---------- */
+        function afterBoot() {
+            // Staggered terminal reveal
+            const lines = document.querySelectorAll('.terminal-line');
+            lines.forEach((line, i) => {
+                setTimeout(() => line.classList.add('visible'), prefersReduced ? 0 : i * 140);
+            });
+
+            // Typewriter
+            setTimeout(typeWriter, prefersReduced ? 0 : 600);
+
+            // Stat counters
+            const counterObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (!entry.isIntersecting) return;
+                    const target = parseInt(entry.target.dataset.count, 10);
+                    if (prefersReduced) {
+                        entry.target.textContent = target;
+                    } else {
+                        let current = 0;
+                        const increment = target / 50;
+                        const timer = setInterval(() => {
+                            current += increment;
+                            if (current >= target) {
+                                entry.target.textContent = target;
+                                clearInterval(timer);
+                            } else {
+                                entry.target.textContent = Math.floor(current);
+                            }
+                        }, 30);
+                    }
+                    counterObserver.unobserve(entry.target);
+                });
+            });
+            document.querySelectorAll('.stat-value[data-count]').forEach(el => counterObserver.observe(el));
+
+            if (!prefersReduced) scheduleGlitch();
+        }
+
+        /* ---------- Typewriter ---------- */
+        const phrases = [
+            'Cloud Engineer',
+            'AWS Community Builder',
+            'DevTools Advocate',
+            'Security as Code Enthusiast',
+            'Open Source Contributor'
+        ];
+        let phraseIndex = 0;
+        let charIndex = 0;
+        let isDeleting = false;
+        const typewriterEl = document.getElementById('typewriter');
+
+        function typeWriter() {
+            const current = phrases[phraseIndex];
+            if (isDeleting) {
+                typewriterEl.textContent = current.substring(0, charIndex - 1);
+                charIndex--;
+            } else {
+                typewriterEl.textContent = current.substring(0, charIndex + 1);
+                charIndex++;
+            }
+            let typeSpeed = isDeleting ? 50 : 100;
+            if (!isDeleting && charIndex === current.length) {
+                typeSpeed = 2000;
+                isDeleting = true;
+            } else if (isDeleting && charIndex === 0) {
+                isDeleting = false;
+                phraseIndex = (phraseIndex + 1) % phrases.length;
+                typeSpeed = 500;
+            }
+            setTimeout(typeWriter, typeSpeed);
+        }
+
+        /* ---------- Glitch flicker on the name ---------- */
+        const heroName = document.getElementById('hero-name');
+        const GLYPHS = '!<>-_\\/[]{}—=+*^?#01';
+        function scheduleGlitch() {
+            setTimeout(() => {
+                const original = heroName.dataset.text;
+                const chars = original.split('');
+                const hits = 2 + Math.floor(Math.random() * 3);
+                for (let i = 0; i < hits; i++) {
+                    const idx = Math.floor(Math.random() * chars.length);
+                    if (chars[idx] !== ' ') chars[idx] = GLYPHS[Math.floor(Math.random() * GLYPHS.length)];
+                }
+                heroName.textContent = chars.join('');
+                heroName.classList.add('glitching');
+                setTimeout(() => {
+                    heroName.textContent = original;
+                    heroName.classList.remove('glitching');
+                }, 280);
+                scheduleGlitch();
+            }, 5000 + Math.random() * 4000);
+        }
+
+        /* ---------- Particle Network (pauses when tab hidden) ---------- */
+        const canvas = document.getElementById('particles');
+        if (!prefersReduced) {
+            const ctx = canvas.getContext('2d');
+            let particles = [];
+            let rafId = null;
+
+            function resizeCanvas() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            }
+            resizeCanvas();
+            let resizeTimer;
+            window.addEventListener('resize', () => {
+                clearTimeout(resizeTimer);
+                resizeTimer = setTimeout(resizeCanvas, 150);
+            });
+
+            class Particle {
+                constructor() {
+                    this.x = Math.random() * canvas.width;
+                    this.y = Math.random() * canvas.height;
+                    this.vx = (Math.random() - 0.5) * 0.5;
+                    this.vy = (Math.random() - 0.5) * 0.5;
+                    this.size = Math.random() * 2 + 1;
+                }
+                update() {
+                    this.x += this.vx;
+                    this.y += this.vy;
+                    if (this.x < 0 || this.x > canvas.width) this.vx *= -1;
+                    if (this.y < 0 || this.y > canvas.height) this.vy *= -1;
+                }
+                draw() {
+                    ctx.fillStyle = 'rgba(0, 212, 170, 0.5)';
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+
+            const particleCount = window.innerWidth < 768 ? 30 : 60;
+            for (let i = 0; i < particleCount; i++) particles.push(new Particle());
+
+            function animateParticles() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                particles.forEach((p, i) => {
+                    p.update();
+                    p.draw();
+                    for (let j = i + 1; j < particles.length; j++) {
+                        const dx = particles[j].x - p.x;
+                        const dy = particles[j].y - p.y;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+                        if (dist < 150) {
+                            ctx.strokeStyle = `rgba(0, 212, 170, ${0.2 * (1 - dist / 150)})`;
+                            ctx.lineWidth = 1;
+                            ctx.beginPath();
+                            ctx.moveTo(p.x, p.y);
+                            ctx.lineTo(particles[j].x, particles[j].y);
+                            ctx.stroke();
+                        }
+                    }
+                });
+                rafId = requestAnimationFrame(animateParticles);
+            }
+            animateParticles();
+
+            document.addEventListener('visibilitychange', () => {
+                if (document.hidden) {
+                    cancelAnimationFrame(rafId);
+                    rafId = null;
+                } else if (!rafId) {
+                    animateParticles();
+                }
+            });
+        }
+
+        /* ---------- Scroll reveal: timeline & skill bars ---------- */
+        const observerOptions = { threshold: 0.1, rootMargin: '0px 0px -50px 0px' };
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                    entry.target.querySelectorAll('.skill-fill').forEach(fill => {
+                        fill.style.width = fill.dataset.width + '%';
+                    });
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.timeline-item').forEach(el => observer.observe(el));
+        document.querySelectorAll('.skill-category').forEach(el => observer.observe(el));
+
+        /* ---------- Scroll-spy ---------- */
+        const spyLinks = document.querySelectorAll('.nav-links a[data-spy]');
+        const spyObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    spyLinks.forEach(link => {
+                        link.classList.toggle('active', link.dataset.spy === entry.target.id);
+                    });
+                }
+            });
+        }, { rootMargin: '-40% 0px -55% 0px' });
+        ['about', 'experience', 'videos', 'talks', 'writing', 'projects', 'skills', 'contact'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) spyObserver.observe(el);
+        });
+
+        /* ---------- Scroll effects: progress bar, header, back-to-top ---------- */
+        const progressBar = document.getElementById('scroll-progress');
+        const siteHeader = document.getElementById('site-header');
+        const backToTop = document.getElementById('back-to-top');
+        let ticking = false;
+
+        function onScroll() {
+            const scrollTop = window.scrollY;
+            const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+            progressBar.style.width = (docHeight > 0 ? (scrollTop / docHeight) * 100 : 0) + '%';
+            siteHeader.classList.toggle('scrolled', scrollTop > 40);
+            backToTop.classList.toggle('show', scrollTop > 600);
+            ticking = false;
+        }
+        window.addEventListener('scroll', () => {
+            if (!ticking) {
+                requestAnimationFrame(onScroll);
+                ticking = true;
+            }
+        }, { passive: true });
+
+        backToTop.addEventListener('click', () => {
+            window.scrollTo({ top: 0, behavior: prefersReduced ? 'auto' : 'smooth' });
+        });
+
+        /* ---------- Mobile nav ---------- */
+        const navToggle = document.getElementById('nav-toggle');
+        const navLinks = document.getElementById('nav-links');
+        navToggle.addEventListener('click', () => {
+            const open = navLinks.classList.toggle('open');
+            navToggle.setAttribute('aria-expanded', open);
+            navToggle.textContent = open ? '×' : '≡';
+        });
+        navLinks.querySelectorAll('a').forEach(link => {
+            link.addEventListener('click', () => {
+                navLinks.classList.remove('open');
+                navToggle.setAttribute('aria-expanded', 'false');
+                navToggle.textContent = '≡';
+            });
+        });
+
+        /* ---------- Smooth scroll (guarded) ---------- */
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                const id = this.getAttribute('href');
+                if (id === '#') { e.preventDefault(); return; }
+                const target = document.querySelector(id);
+                if (target) {
+                    e.preventDefault();
+                    target.scrollIntoView({ behavior: prefersReduced ? 'auto' : 'smooth' });
+                }
+            });
+        });
+
+        /* ---------- Footer year ---------- */
+        document.getElementById('footer-year').textContent = new Date().getFullYear();
+
+        /* ---------- Telemetry: uptime, caffeine, counters, sparklines ---------- */
+        const careerStart = new Date('2023-03-01T00:00:00');
+        const uptimeDays = Math.floor((Date.now() - careerStart.getTime()) / 86400000);
+        document.getElementById('uptime-days').textContent = uptimeDays.toLocaleString();
+        document.getElementById('coffee-cups').textContent = 2 + (new Date().getDay() % 3);
+
+        const teleObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (!entry.isIntersecting) return;
+                const target = parseInt(entry.target.dataset.tele, 10);
+                if (prefersReduced) { entry.target.textContent = target.toLocaleString(); }
+                else {
+                    let cur = 0;
+                    const inc = target / 40;
+                    const t = setInterval(() => {
+                        cur += inc;
+                        if (cur >= target) { entry.target.textContent = target.toLocaleString(); clearInterval(t); }
+                        else entry.target.textContent = Math.floor(cur).toLocaleString();
+                    }, 35);
+                }
+                teleObserver.unobserve(entry.target);
+            });
+        });
+        document.querySelectorAll('[data-tele]').forEach(el => teleObserver.observe(el));
+
+        document.querySelectorAll('canvas.spark').forEach(spark => {
+            const c = spark.getContext('2d');
+            const color = spark.dataset.color || '#00d4aa';
+            const pts = [];
+            let v = 14;
+            for (let i = 0; i < 36; i++) {
+                v += (Math.random() - 0.5) * 6;
+                v = Math.max(3, Math.min(25, v));
+                pts.push(v);
+            }
+            function drawSpark() {
+                c.clearRect(0, 0, spark.width, spark.height);
+                c.beginPath();
+                pts.forEach((p, i) => {
+                    const x = (i / (pts.length - 1)) * spark.width;
+                    const y = spark.height - p;
+                    i === 0 ? c.moveTo(x, y) : c.lineTo(x, y);
+                });
+                c.strokeStyle = color;
+                c.lineWidth = 1.5;
+                c.stroke();
+            }
+            drawSpark();
+            if (!prefersReduced) {
+                setInterval(() => {
+                    if (document.hidden) return;
+                    pts.shift();
+                    v += (Math.random() - 0.5) * 6;
+                    v = Math.max(3, Math.min(25, v));
+                    pts.push(v);
+                    drawSpark();
+                }, 1400);
+            }
+        });
+
+        /* ---------- Live GitHub repos ---------- */
+        const LANG_COLORS = {
+            HCL: '#844fba', Go: '#00ADD8', Python: '#3572A5', JavaScript: '#f1e05a',
+            TypeScript: '#3178c6', Shell: '#89e051', Dockerfile: '#384d54', HTML: '#e34c26',
+            CSS: '#563d7c', 'Jupyter Notebook': '#DA5B0B', Lua: '#000080'
+        };
+        const projectsGrid = document.getElementById('projects-grid');
+        const CACHE_KEY = 'gh_repos_cache_v1';
+
+        function repoCard(r) {
+            const a = document.createElement('a');
+            a.className = 'repo-card';
+            a.href = r.html_url;
+            a.target = '_blank';
+            a.rel = 'noopener noreferrer';
+            const lang = r.language
+                ? `<span><span class="lang-dot" style="background:${LANG_COLORS[r.language] || '#64748b'}"></span>${r.language}</span>`
+                : '';
+            a.innerHTML = `
+                <span class="repo-name">${r.name}</span>
+                <span class="repo-desc">${r.description || 'No description yet — experiments in progress.'}</span>
+                <span class="repo-meta">${lang}<span>&#9733; ${r.stargazers_count}</span><span>&#9095; ${r.forks_count}</span></span>`;
+            return a;
+        }
+
+        function renderRepos(repos) {
+            projectsGrid.innerHTML = '';
+            repos.slice(0, 6).forEach(r => projectsGrid.appendChild(repoCard(r)));
+        }
+
+        function renderRepoFallback() {
+            projectsGrid.innerHTML = '';
+            projectsGrid.appendChild(repoCard({
+                name: 'elastic-terraform-demo',
+                html_url: 'https://github.com/InfraPlatformer/elastic-terraform-demo',
+                description: 'Automating Elastic observability stack deployment with Terraform — demo from my Elastic London talk.',
+                language: 'HCL', stargazers_count: 0, forks_count: 0
+            }));
+            const more = document.createElement('a');
+            more.className = 'repo-card';
+            more.href = 'https://github.com/alam-cloud';
+            more.target = '_blank';
+            more.rel = 'noopener noreferrer';
+            more.innerHTML = `
+                <span class="repo-name">alam-cloud</span>
+                <span class="repo-desc">Live feed is rate-limited right now — browse all repos directly on GitHub.</span>
+                <span class="repo-meta"><span>View profile &rarr;</span></span>`;
+            projectsGrid.appendChild(more);
+        }
+
+        (function loadRepos() {
+            try {
+                const cached = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
+                if (cached && Date.now() - cached.t < 3600000) { renderRepos(cached.data); return; }
+            } catch (e) { /* ignore corrupt cache */ }
+            const GH_USER = 'alam-cloud';
+            const GH_LEGACY = 'InfraPlatformer';
+            const fetchRepos = (user) =>
+                fetch(`https://api.github.com/users/${user}/repos?sort=pushed&per_page=6&type=public`)
+                    .then(res => { if (!res.ok) throw new Error('rate-limited'); return res.json(); })
+                    .then(data => {
+                        if (!Array.isArray(data) || !data.length) throw new Error('empty');
+                        return data;
+                    });
+            fetchRepos(GH_USER)
+                .catch(() => fetchRepos(GH_LEGACY))  // legacy account, until repos are moved
+                .then(data => {
+                    try { localStorage.setItem(CACHE_KEY, JSON.stringify({ t: Date.now(), data })); } catch (e) {}
+                    renderRepos(data);
+                })
+                .catch(renderRepoFallback);
+        })();
+
+        /* ---------- Interactive CLI ---------- */
+        const cliOverlay = document.getElementById('cli-overlay');
+        const cliOutput = document.getElementById('cli-output');
+        const cliInput = document.getElementById('cli-input');
+        const cliHistory = [];
+        let cliHistIdx = -1;
+        let cliBooted = false;
+
+        const CLI_COMMANDS = {
+            help: () => [
+                '<span class="ok">Available commands:</span>',
+                '  <span class="inf">whoami</span>        who is this guy',
+                '  <span class="inf">experience</span>    work history summary',
+                '  <span class="inf">skills</span>        top of the stack',
+                '  <span class="inf">talks</span>         speaking & community',
+                '  <span class="inf">writing</span>       published AWS articles',
+                '  <span class="inf">certs</span>         certification highlights',
+                '  <span class="inf">contact</span>       how to reach Alam',
+                '  <span class="inf">cv</span>            print / save this page as a PDF CV',
+                '  <span class="inf">sudo hire alam</span>  you know you want to',
+                '  <span class="inf">clear</span>         wipe the terminal',
+                '  <span class="inf">exit</span>          close this terminal'
+            ],
+            whoami: () => [
+                '<span class="ok">Alam Ahmed</span> — Cloud Engineer, AWS Community Builder (Dev-Tools).',
+                'NOC-hardened, Terraform-fluent, security-first. Based in Hemel Hempstead, UK.'
+            ],
+            experience: () => [
+                '<span class="inf">boxxe</span> — Managed Services Support Analyst (NOC) · May 2024–present',
+                '<span class="inf">AWS</span> — Community Builder, Dev-Tools · Feb 2026–present',
+                '<span class="inf">Envoy Proxy</span> — Author & contributor (AI Gateway docs v2) · 2025',
+                '<span class="inf">Computors</span> — First Line Network Engineer · 2023–24 · 1,400+ tickets'
+            ],
+            skills: () => [
+                'Terraform 95% · AWS 90% · Docker 90% · Bash 90%',
+                'OPA/Conftest 85% · Python 85% · Kubernetes 80% · CI/CD 80%',
+                '<span class="wrn">Currently levelling up:</span> AZ-104 (Azure Administrator)'
+            ],
+            talks: () => [
+                '<span class="inf">Article:</span> The Next Frontier in IAM — AWS Builder Center (2026)',
+                'Terraforming the Well-Architected Way — AWS London HQ (33)',
+                'eBPF: Revolutionizing Cloud-Native Security — Cloud Native London (50)',
+                'Security as Code with Terraform & OPA — Yorkshire DevOps (35)',
+                'LogiCast AWS News Podcast S5E27 · + more in the /talks section'
+            ],
+            article: () => CLI_COMMANDS.writing(),
+            articles: () => CLI_COMMANDS.writing(),
+            writing: () => [
+                '<span class="ok">Published on AWS Builder Center:</span>',
+                '  <span class="inf">2026</span>  The Next Frontier in IAM: Manufacturing Identity Context',
+                '  <span class="inf">Jun 26</span> The Unseen Pipeline: Engineering Developer Velocity <span class="wrn">&#11088; Spotlight pick</span>',
+                '  <span class="inf">Apr 26</span> The Zero-Trust Fortress: Impenetrable AWS Environments',
+                '  <span class="inf">Apr 26</span> Automating Cloud Defense with IaC & eBPF',
+                '  <span class="inf">Jul 25</span> Breaking into Cloud: Aspiring Platform Engineer',
+                'Full list + links in the /writing section'
+            ],
+            certs: () => [
+                '52 badges on Credly. Highlights:',
+                'AWS Well-Architected Proficient · AWS Security Champion · AWS EKS',
+                'Fortinet FCA/FCF · Linux Foundation K8s & SRE · Datadog SRE path'
+            ],
+            contact: () => [
+                '<span class="ok">email</span>    <a href="mailto:alamzaibahmad615@gmail.com">alamzaibahmad615@gmail.com</a>',
+                '<span class="ok">linkedin</span>  <a href="https://www.linkedin.com/in/alam-ahmed-cloud-engineer" target="_blank" rel="noopener noreferrer">alam-ahmed-cloud-engineer</a>',
+                '<span class="ok">github</span>    <a href="https://github.com/alam-cloud" target="_blank" rel="noopener noreferrer">alam-cloud</a> <span class="muted">(legacy: InfraPlatformer)</span>'
+            ],
+            cv: () => { window.print(); return ['Opening print dialog — save as PDF for a recruiter-friendly CV.']; },
+            clear: () => { cliOutput.innerHTML = ''; return []; },
+            exit: () => { closeCli(); return []; },
+            'sudo hire alam': () => [
+                '<span class="wrn">[sudo] password for recruiter: ********</span>',
+                '<span class="ok">Permission granted.</span> Excellent decision detected.',
+                'Deploying offer letter pipeline...',
+                '<span class="ok">Next step:</span> type <span class="inf">contact</span> or email <a href="mailto:alamzaibahmad615@gmail.com">alamzaibahmad615@gmail.com</a>'
+            ]
+        };
+
+        function cliPrint(lines) {
+            lines.forEach(html => {
+                const div = document.createElement('div');
+                div.className = 'cli-line';
+                div.innerHTML = html || '&nbsp;';
+                cliOutput.appendChild(div);
+            });
+            cliOutput.scrollTop = cliOutput.scrollHeight;
+        }
+
+        function openCli() {
+            cliOverlay.classList.add('open');
+            if (!cliBooted) {
+                cliBooted = true;
+                cliPrint([
+                    '<span class="ok">alam-ahmed.dev shell</span> — v2.0 (hiring season build)',
+                    'Type <span class="inf">help</span> to list commands. Esc to exit.',
+                    ''
+                ]);
+            }
+            setTimeout(() => cliInput.focus(), 50);
+        }
+        function closeCli() { cliOverlay.classList.remove('open'); }
+
+        document.getElementById('cli-close').addEventListener('click', closeCli);
+        cliOverlay.addEventListener('click', e => { if (e.target === cliOverlay) closeCli(); });
+
+        cliInput.addEventListener('keydown', e => {
+            if (e.key === 'Enter') {
+                const raw = cliInput.value.trim();
+                cliInput.value = '';
+                if (!raw) return;
+                cliHistory.unshift(raw);
+                cliHistIdx = -1;
+                const echo = document.createElement('div');
+                echo.className = 'cli-line cmd';
+                echo.innerHTML = `<span class="ok">guest:~$</span> ${raw.replace(/</g, '&lt;')}`;
+                cliOutput.appendChild(echo);
+                const cmd = raw.toLowerCase();
+                if (CLI_COMMANDS[cmd]) {
+                    cliPrint(CLI_COMMANDS[cmd]());
+                } else if (cmd.startsWith('sudo')) {
+                    cliPrint(['<span class="wrn">sudo:</span> nice try. Only approved command is <span class="inf">sudo hire alam</span>.']);
+                } else if (cmd === 'rm -rf /' || cmd.includes('rm -rf')) {
+                    cliPrint(['<span class="wrn">Blocked by OPA policy.</span> Security as Code works, see?']);
+                } else {
+                    cliPrint([`command not found: ${raw.replace(/</g, '&lt;')} — try <span class="inf">help</span>`]);
+                }
+                cliOutput.scrollTop = cliOutput.scrollHeight;
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                if (cliHistIdx < cliHistory.length - 1) cliInput.value = cliHistory[++cliHistIdx];
+            } else if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                cliInput.value = cliHistIdx > 0 ? cliHistory[--cliHistIdx] : (cliHistIdx = -1, '');
+            }
+        });
+
+        /* ---------- Global keyboard shortcuts ---------- */
+        const SECTION_ORDER = ['about', 'experience', 'videos', 'talks', 'writing', 'projects', 'skills', 'contact'];
+        document.addEventListener('keydown', e => {
+            const typing = /^(input|textarea)$/i.test(document.activeElement.tagName);
+            if (e.key === 'Escape' && cliOverlay.classList.contains('open')) { closeCli(); return; }
+            if (typing) return;
+            if (e.key === '`' || e.key === '~') {
+                e.preventDefault();
+                cliOverlay.classList.contains('open') ? closeCli() : openCli();
+            } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+                e.preventDefault();
+                openCli();
+            } else if (/^[1-7]$/.test(e.key)) {
+                const target = document.getElementById(SECTION_ORDER[parseInt(e.key, 10) - 1]);
+                if (target) target.scrollIntoView({ behavior: prefersReduced ? 'auto' : 'smooth' });
+            }
+        });
+
+        /* ---------- Print: reveal everything before printing ---------- */
+        window.addEventListener('beforeprint', () => {
+            document.querySelectorAll('.timeline-item, .terminal-line').forEach(el => el.classList.add('visible'));
+            document.querySelectorAll('.skill-fill').forEach(f => { f.style.width = f.dataset.width + '%'; });
+            document.querySelectorAll('.stat-value[data-count]').forEach(el => { el.textContent = el.dataset.count; });
+            document.querySelectorAll('[data-tele]').forEach(el => { el.textContent = parseInt(el.dataset.tele, 10).toLocaleString(); });
+        });
+        document.getElementById('print-cv').addEventListener('click', () => window.print());
+
+        /* ---------- Reduced motion: freeze the packet animation ---------- */
+        if (prefersReduced) {
+            document.querySelectorAll('animateMotion').forEach(m => m.remove());
+        }
+    </script>
+</body>
+</html>
