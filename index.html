@@ -102,7 +102,11 @@
             font-size: 14px;
             transition: opacity 0.6s ease-out, visibility 0.6s;
             cursor: pointer;
+            /* CSS-only failsafe: even if JavaScript dies, the boot screen
+               can never trap a visitor — it fades itself out at 3.5s. */
+            animation: bootAutoHide 0.6s ease 3.5s forwards;
         }
+        @keyframes bootAutoHide { to { opacity: 0; visibility: hidden; pointer-events: none; } }
         #boot-sequence.done { opacity: 0; visibility: hidden; pointer-events: none; }
         .boot-inner { max-width: 760px; width: 100%; margin: 0 auto; }
         .boot-line {
@@ -1118,7 +1122,9 @@
     <div class="scanlines" aria-hidden="true"></div>
 
     <div id="boot-sequence" role="status" aria-label="Loading sequence">
-        <div class="boot-inner" id="boot-inner"></div>
+        <div class="boot-inner" id="boot-inner">
+            <div class="boot-line info">» welcome to alamahmed.dev — waking up the servers…</div>
+        </div>
         <div class="boot-hint" style="max-width: 760px; margin-left: auto; margin-right: auto; width: 100%;">» loading portfolio… click to skip</div>
     </div>
     <canvas id="particles" aria-hidden="true"></canvas>
