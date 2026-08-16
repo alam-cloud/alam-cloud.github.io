@@ -1257,8 +1257,18 @@
                     <div class="telemetry-value info">eu-west-2</div>
                     <div class="telemetry-sub">Hemel Hempstead → London · remote OK</div>
                 </div>
+                <div class="telemetry-card">
+                    <div class="telemetry-label">Total Visitors <span style="color: var(--accent);">● live</span></div>
+                    <div class="telemetry-value"><span id="live-visitors">—</span></div>
+                    <div class="telemetry-sub">counted in a real Postgres DB · you're one of them</div>
+                </div>
+                <div class="telemetry-card">
+                    <div class="telemetry-label">DB Latency <span style="color: var(--accent);">● live</span></div>
+                    <div class="telemetry-value info"><span id="live-latency">—</span> ms</div>
+                    <div class="telemetry-sub" id="live-latency-sub">round-trip to Supabase, just now</div>
+                </div>
             </div>
-            <div class="telemetry-note">// gauges simulated for ambience — the career stats are real</div>
+            <div class="telemetry-note">// visitors &amp; db latency are live from a real database — the career stats are real too; only the squiggly gauges are simulated</div>
         </div>
     </section>
 
@@ -2315,6 +2325,54 @@
                 .catch(renderRepoFallback);
         })();
 
+        /* ---------- Guestbook (Supabase free tier) ---------- */
+        const SUPABASE_URL = 'https://aegzmbudzrnupnknamoi.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_8iS6Mf5aP9UERrpxIj_WUQ_pKxf81Y1';
+        const guestbookReady = () =>
+            !SUPABASE_URL.includes('PASTE_') && !SUPABASE_ANON_KEY.includes('PASTE_');
+        let sbClient = null;
+        async function getSb() {
+            if (!guestbookReady()) return null;
+            if (!sbClient) {
+                const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
+                sbClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            }
+            return sbClient;
+        }
+        const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+        /* ---------- Live infrastructure metrics (Supabase) ---------- */
+        (async function liveMetrics() {
+            const visEl = document.getElementById('live-visitors');
+            const latEl = document.getElementById('live-latency');
+            const latSub = document.getElementById('live-latency-sub');
+            if (!guestbookReady()) {
+                visEl.textContent = 'soon';
+                latEl.textContent = '—';
+                latSub.textContent = 'database not provisioned yet';
+                return;
+            }
+            try {
+                const t0 = performance.now();
+                const sb = await getSb();
+                const { data, error } = await sb.rpc('increment_visitors');
+                const ms = Math.round(performance.now() - t0);
+                if (error) throw error;
+                latEl.textContent = ms;
+                // Count-up animation for the real visitor count
+                const target = parseInt(data, 10);
+                const t1 = performance.now(), dur = 1200;
+                (function tick() {
+                    const p = Math.min((performance.now() - t1) / dur, 1);
+                    visEl.textContent = Math.round(target * (1 - Math.pow(1 - p, 3))).toLocaleString();
+                    if (p < 1) requestAnimationFrame(tick);
+                })();
+            } catch (e) {
+                visEl.textContent = 'err';
+                latSub.textContent = 'metrics feed unreachable — site still fine, it is static';
+            }
+        })();
+
         /* ---------- Interactive CLI ---------- */
         const cliOverlay = document.getElementById('cli-overlay');
         const cliOutput = document.getElementById('cli-output');
@@ -2334,6 +2392,8 @@
                 '  <span class="inf">certs</span>         certification highlights',
                 '  <span class="inf">contact</span>       how to reach Alam',
                 '  <span class="inf">cv</span>            print / save this page as a PDF CV',
+                '  <span class="inf">sign &lt;name&gt; &lt;msg&gt;</span>  sign the guestbook',
+                '  <span class="inf">guestbook</span>     read the guestbook',
                 '  <span class="inf">sudo hire alam</span>  you know you want to',
                 '  <span class="inf">clear</span>         wipe the terminal',
                 '  <span class="inf">exit</span>          close this terminal'
@@ -2382,6 +2442,20 @@
                 '<span class="ok">github</span>    <a href="https://github.com/alam-cloud" target="_blank" rel="noopener noreferrer">alam-cloud</a> <span class="muted">(legacy: InfraPlatformer)</span>'
             ],
             cv: () => { window.print(); return ['Opening print dialog — save as PDF for a recruiter-friendly CV.']; },
+            guestbook: async () => {
+                const sb = await getSb();
+                if (!sb) return ['<span class="wrn">guestbook offline</span> — database not provisioned yet. Check back soon.'];
+                const { data, error } = await sb.from('guestbook').select('name, message, created_at').order('created_at', { ascending: false }).limit(10);
+                if (error) return [`<span class="wrn">query failed:</span> ${esc(error.message)}`];
+                if (!data.length) return ['Guestbook is empty. Be the first: <span class="inf">sign YourName your message</span>'];
+                const lines = ['<span class="ok">== guestbook (last ' + data.length + ') ==</span>'];
+                data.forEach(r => {
+                    const d = new Date(r.created_at).toISOString().slice(0, 10);
+                    lines.push(`<span class="inf">${d}</span> <span class="ok">${esc(r.name)}</span>: ${esc(r.message)}`);
+                });
+                lines.push('', 'Leave yours: <span class="inf">sign YourName your message</span>');
+                return lines;
+            },
             clear: () => { cliOutput.innerHTML = ''; return []; },
             exit: () => { closeCli(); return []; },
             'sudo hire alam': () => [
@@ -2431,8 +2505,32 @@
                 echo.innerHTML = `<span class="ok">guest:~$</span> ${raw.replace(/</g, '&lt;')}`;
                 cliOutput.appendChild(echo);
                 const cmd = raw.toLowerCase();
-                if (CLI_COMMANDS[cmd]) {
-                    cliPrint(CLI_COMMANDS[cmd]());
+                if (cmd.startsWith('sign')) {
+                    const arg = raw.slice(4).trim();
+                    if (!arg) {
+                        cliPrint(['usage: <span class="inf">sign YourName your message here</span>']);
+                    } else {
+                        const sp = arg.indexOf(' ');
+                        const name = sp === -1 ? arg : arg.slice(0, sp);
+                        const message = sp === -1 ? '' : arg.slice(sp + 1).trim();
+                        if (!message || name.length > 30 || message.length > 200) {
+                            cliPrint(['<span class="wrn">rejected:</span> need a name AND a message (name ≤30 chars, message ≤200).']);
+                        } else {
+                            cliPrint(['<span class="muted">provisioning guestbook entry...</span>']);
+                            (async () => {
+                                const sb = await getSb();
+                                if (!sb) { cliPrint(['<span class="wrn">guestbook offline</span> — database not provisioned yet. Check back soon.']); return; }
+                                const { error } = await sb.from('guestbook').insert({ name, message });
+                                cliPrint(error
+                                    ? [`<span class="wrn">deploy failed:</span> ${esc(error.message)}`]
+                                    : ['<span class="ok">entry committed.</span> guestbook updated — run <span class="inf">guestbook</span> to see it.']);
+                            })();
+                        }
+                    }
+                } else if (CLI_COMMANDS[cmd]) {
+                    const out = CLI_COMMANDS[cmd]();
+                    if (out instanceof Promise) out.then(lines => cliPrint(lines)).catch(() => cliPrint(['<span class="wrn">command failed.</span>']));
+                    else cliPrint(out);
                 } else if (cmd.startsWith('sudo')) {
                     cliPrint(['<span class="wrn">sudo:</span> nice try. Only approved command is <span class="inf">sudo hire alam</span>.']);
                 } else if (cmd === 'rm -rf /' || cmd.includes('rm -rf')) {
