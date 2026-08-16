@@ -22,6 +22,7 @@
             --text-primary: #e2e8f0;
             --text-secondary: #94a3b8;
             --accent-success: #00d4aa;
+            --accent: #00d4aa;
             --accent-info: #38bdf8;
             --accent-warn: #ffd93d;
             --accent-alert: #ff6b6b;
@@ -2566,7 +2567,7 @@
             const caption = document.getElementById('sm-caption');
             const nodes = svg.querySelectorAll('.sm-node');
             const edges = svg.querySelectorAll('.sm-edge');
-            const defaultCap = '// hover a node — every connection is a workflow I've actually run';
+            const defaultCap = "// hover a node — every connection is a workflow I've actually run";
             function focus(name, desc) {
                 svg.classList.add('sm-focus');
                 nodes.forEach(n => n.classList.toggle('hit',
