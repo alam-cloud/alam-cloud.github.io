@@ -925,12 +925,12 @@
         .arch-node-accent { stroke: var(--accent-success); }
         .arch-text {
             font-family: 'JetBrains Mono', monospace;
-            font-size: 13px;
+            font-size: 15px;
             fill: var(--text-primary);
         }
         .arch-sub {
             font-family: 'JetBrains Mono', monospace;
-            font-size: 10px;
+            font-size: 12px;
             fill: var(--text-secondary);
         }
         .arch-edge { stroke: #334155; stroke-width: 1.5; fill: none; }
@@ -1022,6 +1022,8 @@
             #back-to-top, #scroll-progress, .cta-group, #videos,
             #print-cv, .boot-hint, footer .shortcuts, .telemetry-note, .arch-wrap { display: none !important; }
             body { background: #fff; color: #111; line-height: 1.45; }
+            * { text-shadow: none !important; box-shadow: none !important; }
+            a { color: #0a54c2 !important; text-decoration: none; }
             .container { max-width: 100%; padding: 0; }
             section, .hero { padding: 0.9rem 0 !important; min-height: 0 !important; page-break-inside: avoid; }
             .section-alt { background: #fff; }
@@ -1162,21 +1164,27 @@
                         </div>
                     </div>
                     <div class="cta-group">
-                        <a href="https://www.linkedin.com/in/alam-ahmed-cloud-engineer" target="_blank" rel="noopener noreferrer" class="btn btn-primary">
-                            <span>&#8599;</span> Connect on LinkedIn
+                        <button type="button" class="btn btn-primary" onclick="window.print()">
+                            <span>&#9113;</span> Download CV (PDF)
+                        </button>
+                        <button type="button" class="btn btn-secondary" id="open-terminal-btn">
+                            <span>&gt;_</span> Open Terminal
+                        </button>
+                        <a href="https://www.linkedin.com/in/alam-ahmed-cloud-engineer" target="_blank" rel="noopener noreferrer" class="btn btn-secondary">
+                            <span>&#8599;</span> LinkedIn
                         </a>
                         <a href="mailto:alamzaibahmad615@gmail.com" class="btn btn-secondary">
-                            <span>&#9993;</span> Initiate Contact
+                            <span>&#9993;</span> Email
                         </a>
                     </div>
                 </div>
 
-                <div class="terminal-window" aria-label="Terminal introduction">
+                <div class="terminal-window" aria-label="Terminal introduction" id="hero-terminal" style="cursor: pointer;" title="Click to open the interactive shell">
                     <div class="terminal-header">
                         <div class="terminal-btn red"></div>
                         <div class="terminal-btn yellow"></div>
                         <div class="terminal-btn green"></div>
-                        <span class="terminal-title">alam@cloud-engineer:~</span>
+                        <span class="terminal-title">alam@cloud-engineer:~ <span style="opacity: 0.55; font-size: 0.8em;">— click to open interactive shell</span></span>
                     </div>
                     <div class="terminal-body" id="terminal-body">
                         <div class="terminal-line">
@@ -1199,7 +1207,7 @@
                             <span class="terminal-command">terraform plan -target=career</span>
                         </div>
                         <div class="terminal-line terminal-output terminal-success">
-                            + Seeking Junior Cloud / DevOps Engineer roles<br>
+                            + Open to Cloud / Platform Engineer roles<br>
                             + Pursuing AZ-104 certification<br>
                             + Building secure, scalable platforms
                         </div>
@@ -1242,15 +1250,15 @@
                     <div class="telemetry-sub">verified on Credly</div>
                 </div>
                 <div class="telemetry-card">
-                    <div class="telemetry-label">Caffeine Level</div>
-                    <div class="telemetry-value warn"><span id="coffee-cups">—</span> cups</div>
+                    <div class="telemetry-label">Energy Drinks</div>
+                    <div class="telemetry-value warn"><span id="coffee-cups">—</span> cans</div>
                     <div class="telemetry-sub">today · status: OPTIMAL</div>
                     <canvas class="spark" width="72" height="28" data-color="#ffd93d" aria-hidden="true"></canvas>
                 </div>
                 <div class="telemetry-card">
                     <div class="telemetry-label">Interview Status</div>
                     <div class="telemetry-value">OPERATIONAL</div>
-                    <div class="telemetry-sub">open to junior cloud / DevOps roles</div>
+                    <div class="telemetry-sub">open to cloud / platform engineer roles</div>
                 </div>
                 <div class="telemetry-card">
                     <div class="telemetry-label">Region</div>
@@ -1788,7 +1796,7 @@
             </div>
             <div class="contact-grid">
                 <div class="contact-info">
-                    <h3>Open to Junior Cloud / DevOps Engineer Roles</h3>
+                    <h3>Open to Cloud &amp; Platform Engineering Roles</h3>
                     <p style="color: var(--text-secondary); margin-bottom: 1rem;">
                         Currently based in Hemel Hempstead, England. Open to remote, hybrid, and London-area opportunities.
                     </p>
@@ -1910,6 +1918,7 @@
         if (prefersReduced) {
             finishBoot();
         } else {
+            const BOOT_SPEED = 0.55; // whole sequence ~2s; failsafe below guarantees exit
             bootLines.forEach((line, i) => {
                 bootTimers.push(setTimeout(() => {
                     const div = document.createElement('div');
@@ -1917,18 +1926,18 @@
                     div.textContent = line.text;
                     bootInner.appendChild(div);
                     if (i === bootLines.length - 1) {
-                        bootTimers.push(setTimeout(finishBoot, 1100));
+                        bootTimers.push(setTimeout(finishBoot, 700));
                     }
-                }, line.delay));
+                }, line.delay * BOOT_SPEED));
             });
             bootEl.addEventListener('click', finishBoot);
             window.addEventListener('keydown', function onKey() {
                 finishBoot();
                 window.removeEventListener('keydown', onKey);
             });
-            // Failsafe: never hold visitors on the boot screen longer than 4s,
+            // Failsafe: never hold visitors on the boot screen longer than 3s,
             // even if a timer is throttled (background tab, slow device).
-            bootTimers.push(setTimeout(finishBoot, 4000));
+            bootTimers.push(setTimeout(finishBoot, 3000));
         }
 
         /* ---------- Post-boot: terminal reveal, typewriter, counters ---------- */
@@ -2023,7 +2032,7 @@
                     heroName.classList.remove('glitching');
                 }, 280);
                 scheduleGlitch();
-            }, 5000 + Math.random() * 4000);
+            }, 10000 + Math.random() * 10000);
         }
 
         /* ---------- Particle Network (pauses when tab hidden) ---------- */
@@ -2491,6 +2500,8 @@
         function closeCli() { cliOverlay.classList.remove('open'); }
 
         document.getElementById('cli-close').addEventListener('click', closeCli);
+        document.getElementById('open-terminal-btn').addEventListener('click', openCli);
+        document.getElementById('hero-terminal').addEventListener('click', openCli);
         cliOverlay.addEventListener('click', e => { if (e.target === cliOverlay) closeCli(); });
 
         cliInput.addEventListener('keydown', e => {
