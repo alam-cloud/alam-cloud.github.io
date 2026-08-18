@@ -941,6 +941,42 @@
         .arch-edge { stroke: #334155; stroke-width: 1.5; fill: none; }
         .arch-edge-dashed { stroke: #334155; stroke-width: 1.2; fill: none; stroke-dasharray: 5 5; }
 
+        /* Interactive architecture diagram */
+        .arch-wrap svg { min-width: 940px; }
+        .anode { cursor: pointer; outline: none; }
+        .anode rect { transition: stroke 0.2s, stroke-width 0.2s; }
+        .anode:hover rect, .anode:focus-visible rect, .anode.active rect {
+            stroke: var(--accent-success);
+            stroke-width: 2;
+        }
+        .anode:hover text, .anode:focus-visible text, .anode.active text { fill: var(--accent-success); }
+        .arch-detail {
+            margin-top: 1.25rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-left: 3px solid var(--accent-success);
+            border-radius: 10px;
+            padding: 1.1rem 1.25rem;
+        }
+        .arch-detail-title {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--accent-success);
+            margin-bottom: 0.4rem;
+        }
+        .arch-detail-body { font-size: 0.88rem; color: var(--text-secondary); line-height: 1.6; }
+        .arch-detail-certs { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.7rem; }
+        .arch-cert-chip {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.68rem;
+            color: var(--accent-info);
+            border: 1px solid var(--accent-info);
+            border-radius: 4px;
+            padding: 0.15rem 0.5rem;
+            letter-spacing: 0.5px;
+        }
+
         /* CLI overlay */
         #cli-overlay {
             position: fixed;
@@ -1639,56 +1675,75 @@
         <div class="container">
             <div class="section-header">
                 <div class="section-tag">Reference Architecture</div>
-                <h2 class="section-title">How I <span class="gradient-text">Build</span></h2>
-                <p class="section-desc">The pattern I reach for: edge-cached, load-balanced, containerised, policy-checked, observable. Watch the packets flow.</p>
+                <h2 class="section-title">How I <span class="gradient-text">Connect</span></h2>
+                <p class="section-desc">Secure access to customer estates — the pattern from my NOC &amp; MSP work. One hardened door in, everything encrypted, everything logged. Hover or tap a node.</p>
             </div>
             <div class="arch-wrap">
-                <svg viewBox="0 0 940 330" role="img" aria-label="Diagram of a secure cloud platform: users connect through CDN and WAF to a load balancer, into a Kubernetes cluster backed by a database and object storage, with policy checks and observability alongside.">
-                    <path id="ap1" class="arch-edge" d="M130,155 H190"/>
-                    <path id="ap2" class="arch-edge" d="M320,155 H380"/>
-                    <path id="ap3" class="arch-edge" d="M500,155 H560"/>
-                    <path id="ap4" class="arch-edge" d="M760,155 H800"/>
-                    <path class="arch-edge-dashed" d="M440,70 V130"/>
-                    <path class="arch-edge-dashed" d="M450,250 V280 H660 V255"/>
+                <svg viewBox="0 0 1100 470" role="img" aria-label="Interactive diagram of secure customer access: engineer workstation connects via SSO and MFA to a jump host in an AWS management VPC, over a site-to-site VPN tunnel to the customer's FortiGate firewall and internal estate, with Terraform and OPA policy checks above and observability below.">
+                    <path id="ap1" class="arch-edge" d="M150,218 H180"/>
+                    <path id="ap2" class="arch-edge" d="M310,218 H390"/>
+                    <path id="ap3" class="arch-edge" d="M550,218 H660"/>
+                    <path id="ap4" class="arch-edge" d="M780,218 H820"/>
+                    <path id="ap5" class="arch-edge" d="M885,246 V262 H925 V290"/>
+                    <path class="arch-edge-dashed" d="M490,80 V120"/>
+                    <path class="arch-edge-dashed" d="M490,390 V320"/>
 
-                    <rect class="arch-node" x="20" y="130" width="110" height="50" rx="8"/>
-                    <text class="arch-text" x="75" y="152" text-anchor="middle">Users</text>
-                    <text class="arch-sub" x="75" y="168" text-anchor="middle">recruiters too</text>
-
-                    <rect class="arch-node" x="190" y="130" width="130" height="50" rx="8"/>
-                    <text class="arch-text" x="255" y="152" text-anchor="middle">CDN + WAF</text>
-                    <text class="arch-sub" x="255" y="168" text-anchor="middle">CloudFront</text>
-
-                    <rect class="arch-node" x="380" y="130" width="120" height="50" rx="8"/>
-                    <text class="arch-text" x="440" y="152" text-anchor="middle">Load Balancer</text>
-                    <text class="arch-sub" x="440" y="168" text-anchor="middle">ALB · TLS</text>
-
-                    <rect class="arch-node arch-node-accent" x="380" y="20" width="130" height="50" rx="8"/>
-                    <text class="arch-text" x="445" y="42" text-anchor="middle">OPA / Conftest</text>
-                    <text class="arch-sub" x="445" y="58" text-anchor="middle">policy as code</text>
-
-                    <rect class="arch-node" x="560" y="60" width="200" height="190" rx="10"/>
-                    <text class="arch-text" x="660" y="85" text-anchor="middle">Kubernetes (EKS)</text>
-                    <rect class="arch-node" x="580" y="100" width="160" height="34" rx="6"/>
-                    <text class="arch-sub" x="660" y="121" text-anchor="middle">pod · app</text>
-                    <rect class="arch-node" x="580" y="142" width="160" height="34" rx="6"/>
-                    <text class="arch-sub" x="660" y="163" text-anchor="middle">pod · app</text>
-                    <rect class="arch-node" x="580" y="184" width="160" height="34" rx="6"/>
-                    <text class="arch-sub" x="660" y="205" text-anchor="middle">pod · Falco / eBPF</text>
-
-                    <rect class="arch-node" x="800" y="130" width="120" height="50" rx="8"/>
-                    <text class="arch-text" x="860" y="152" text-anchor="middle">Data Layer</text>
-                    <text class="arch-sub" x="860" y="168" text-anchor="middle">RDS · S3</text>
-
-                    <rect class="arch-node" x="380" y="250" width="140" height="50" rx="8"/>
-                    <text class="arch-text" x="450" y="272" text-anchor="middle">Observability</text>
-                    <text class="arch-sub" x="450" y="288" text-anchor="middle">Datadog · SIEM</text>
+                    <g class="anode" data-key="workstation" tabindex="0" role="button" aria-label="Engineer workstation — details">
+                        <rect class="arch-node" x="20" y="190" width="130" height="56" rx="8"/>
+                        <text class="arch-text" x="85" y="214" text-anchor="middle">Engineer</text>
+                        <text class="arch-sub" x="85" y="231" text-anchor="middle">workstation · Linux</text>
+                    </g>
+                    <g class="anode" data-key="sso" tabindex="0" role="button" aria-label="SSO and MFA identity layer — details">
+                        <rect class="arch-node" x="180" y="190" width="130" height="56" rx="8"/>
+                        <text class="arch-text" x="245" y="214" text-anchor="middle">SSO + MFA</text>
+                        <text class="arch-sub" x="245" y="231" text-anchor="middle">IAM Identity Center</text>
+                    </g>
+                    <g class="anode" data-key="vpc" tabindex="0" role="button" aria-label="AWS management VPC — details">
+                        <rect class="arch-node arch-node-accent" x="340" y="120" width="280" height="200" rx="10"/>
+                        <text class="arch-sub" x="480" y="143" text-anchor="middle">Management VPC (AWS · eu-west-2)</text>
+                    </g>
+                    <g class="anode" data-key="jumphost" tabindex="0" role="button" aria-label="Jump host bastion — details">
+                        <rect class="arch-node" x="390" y="200" width="160" height="56" rx="8"/>
+                        <text class="arch-text" x="470" y="224" text-anchor="middle">Jump Host</text>
+                        <text class="arch-sub" x="470" y="241" text-anchor="middle">EC2 · SSM · no :22</text>
+                    </g>
+                    <g class="anode" data-key="tunnel" tabindex="0" role="button" aria-label="Encrypted internet tunnel — details">
+                        <rect class="arch-node" x="660" y="190" width="120" height="56" rx="8"/>
+                        <text class="arch-text" x="720" y="214" text-anchor="middle">Internet</text>
+                        <text class="arch-sub" x="720" y="231" text-anchor="middle">IPsec tunnel</text>
+                    </g>
+                    <g class="anode" data-key="fw" tabindex="0" role="button" aria-label="Customer edge FortiGate firewall — details">
+                        <rect class="arch-node" x="820" y="190" width="130" height="56" rx="8"/>
+                        <text class="arch-text" x="885" y="214" text-anchor="middle">Customer Edge</text>
+                        <text class="arch-sub" x="885" y="231" text-anchor="middle">FortiGate FW</text>
+                    </g>
+                    <g class="anode" data-key="lan" tabindex="0" role="button" aria-label="Customer estate — details">
+                        <rect class="arch-node" x="800" y="290" width="250" height="70" rx="8"/>
+                        <text class="arch-text" x="925" y="318" text-anchor="middle">Customer Estate</text>
+                        <text class="arch-sub" x="925" y="336" text-anchor="middle">servers · switches · VoIP · M365</text>
+                    </g>
+                    <g class="anode" data-key="iac" tabindex="0" role="button" aria-label="Terraform with OPA and Conftest policy checks — details">
+                        <rect class="arch-node" x="390" y="30" width="200" height="50" rx="8"/>
+                        <text class="arch-text" x="490" y="52" text-anchor="middle">Terraform + OPA</text>
+                        <text class="arch-sub" x="490" y="68" text-anchor="middle">policy-checked IaC</text>
+                    </g>
+                    <g class="anode" data-key="obs" tabindex="0" role="button" aria-label="Observability and runtime security — details">
+                        <rect class="arch-node" x="390" y="390" width="200" height="50" rx="8"/>
+                        <text class="arch-text" x="490" y="412" text-anchor="middle">Observability</text>
+                        <text class="arch-sub" x="490" y="428" text-anchor="middle">CloudWatch · Datadog · Falco</text>
+                    </g>
 
                     <circle r="4" fill="#00d4aa"><animateMotion dur="2.2s" repeatCount="indefinite"><mpath href="#ap1"/></animateMotion></circle>
                     <circle r="4" fill="#38bdf8"><animateMotion dur="2.6s" begin="0.4s" repeatCount="indefinite"><mpath href="#ap2"/></animateMotion></circle>
                     <circle r="4" fill="#00d4aa"><animateMotion dur="2.4s" begin="0.8s" repeatCount="indefinite"><mpath href="#ap3"/></animateMotion></circle>
                     <circle r="4" fill="#ffd93d"><animateMotion dur="2.8s" begin="0.2s" repeatCount="indefinite"><mpath href="#ap4"/></animateMotion></circle>
+                    <circle r="4" fill="#ff6b6b"><animateMotion dur="2.0s" begin="1.1s" repeatCount="indefinite"><mpath href="#ap5"/></animateMotion></circle>
                 </svg>
+            </div>
+            <div class="arch-detail" id="arch-detail" aria-live="polite">
+                <div class="arch-detail-title" id="arch-detail-title">// hover or tap a node</div>
+                <div class="arch-detail-body" id="arch-detail-body">Every hop on this map is a workflow I've actually run in production — from SSM sessions through a bastion, down an IPsec tunnel, to FortiGate configs on a customer's edge.</div>
+                <div class="arch-detail-certs" id="arch-detail-certs"></div>
             </div>
         </div>
     </section>
@@ -2620,6 +2675,87 @@
         if (prefersReduced) {
             document.querySelectorAll('animateMotion').forEach(m => m.remove());
         }
+    </script>
+
+    <script>
+        /* ---------- Interactive architecture diagram ---------- */
+        const ARCH_INFO = {
+            workstation: {
+                title: 'Engineer Workstation',
+                body: 'Hardened Linux daily driver — full-disk encryption, no stored customer credentials, everything auditable. All access flows to the right from here. There is no back door.',
+                certs: ['LFS261: DevOps & SRE Fundamentals']
+            },
+            sso: {
+                title: 'Identity — SSO + MFA',
+                body: 'IAM Identity Center with MFA. Temporary, scoped credentials only — zero standing access keys. Same zero-trust model I wrote about in "The Zero-Trust Fortress" on AWS Builder Center.',
+                certs: ['AWS Knowledge: Security Champion']
+            },
+            vpc: {
+                title: 'Management VPC (AWS)',
+                body: 'Private subnets, least-privilege security groups, VPC Flow Logs, no public IPs. eu-west-2, because latency matters when you are the one on call.',
+                certs: ['AWS Well-Architected Proficient']
+            },
+            jumphost: {
+                title: 'Jump Host / Bastion',
+                body: 'The single hardened entry point. SSM Session Manager instead of an open port 22, every session logged to CloudTrail. One door — fully watched.',
+                certs: ['AWS Knowledge: Security Champion', 'LFS261: DevOps & SRE']
+            },
+            tunnel: {
+                title: 'The Hostile Bit in the Middle',
+                body: 'Everything crosses the internet encrypted — site-to-site IPsec (IKEv2) with BGP for automatic tunnel failover. Assume it is watched; design accordingly. The NOC teaches you fast what a dropped tunnel at 2am feels like.',
+                certs: ['Fortinet Certified Associate']
+            },
+            fw: {
+                title: 'Customer Edge — FortiGate',
+                body: 'Fortinet firewall at the customer site: IPS, web filtering, VLAN segmentation, and the VPN termination point. I hold both Fortinet cybersecurity certifications and have configured these in production.',
+                certs: ['Fortinet Certified Associate', 'Fortinet Certified Fundamentals']
+            },
+            lan: {
+                title: 'Customer Estate',
+                body: 'Servers, managed switches, VoIP, hosted desktops, Microsoft 365 — the MSP world. This is what I supported at Computors and now at boxxe: 1,400+ tickets deep across P1–P4.',
+                certs: ['1,400+ tickets resolved @ Computors']
+            },
+            iac: {
+                title: 'Terraform + OPA / Conftest',
+                body: 'The whole thing is code. Every change is a pull request, and OPA/Conftest policies block public security groups, 0.0.0.0/0 SSH, and unencrypted storage before anything applies. Security as Code — the subject of my Yorkshire DevOps talk.',
+                certs: ['AWS Well-Architected Proficient', 'Speaker: Security as Code w/ Terraform & OPA']
+            },
+            obs: {
+                title: 'Observability & Runtime Security',
+                body: 'CloudWatch + Datadog for metrics, logs and SIEM; Falco/eBPF for runtime threat detection on anything containerised. If it blinks, I see it — preferably before the customer does.',
+                certs: ['Datadog SRE Learning Path', 'Datadog Cloud SIEM', 'Isovalent (Cilium) Platform Engineer']
+            }
+        };
+
+        const archDetail = document.getElementById('arch-detail');
+        const archTitle = document.getElementById('arch-detail-title');
+        const archBody = document.getElementById('arch-detail-body');
+        const archCerts = document.getElementById('arch-detail-certs');
+
+        function showArchNode(node) {
+            document.querySelectorAll('.anode.active').forEach(n => n.classList.remove('active'));
+            node.classList.add('active');
+            const info = ARCH_INFO[node.dataset.key];
+            if (!info) return;
+            archTitle.textContent = '// ' + info.title;
+            archBody.textContent = info.body;
+            archCerts.innerHTML = '';
+            info.certs.forEach(c => {
+                const chip = document.createElement('span');
+                chip.className = 'arch-cert-chip';
+                chip.textContent = '\u2713 ' + c;
+                archCerts.appendChild(chip);
+            });
+        }
+
+        document.querySelectorAll('.anode').forEach(node => {
+            node.addEventListener('mouseenter', () => showArchNode(node));
+            node.addEventListener('focus', () => showArchNode(node));
+            node.addEventListener('click', () => showArchNode(node));
+            node.addEventListener('keydown', e => {
+                if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); showArchNode(node); }
+            });
+        });
     </script>
 </body>
 </html>
