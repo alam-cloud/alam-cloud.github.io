@@ -9,6 +9,11 @@
     <meta property="og:title" content="Alam Ahmed | Cloud Engineer">
     <meta property="og:description" content="From NOC trenches to cloud architecture. Terraform, Kubernetes, Security as Code — AWS Community Builder.">
     <meta property="og:type" content="website">
+    <meta property="og:url" content="https://alamahmed.dev/">
+    <meta name="twitter:card" content="summary">
+    <meta property="og:image" content="https://alamahmed.dev/avatar.png">
+    <meta name="twitter:image" content="https://alamahmed.dev/avatar.png">
+    <link rel="canonical" href="https://alamahmed.dev/">
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90' fill='%2300d4aa'%3E%E2%97%88%3C/text%3E%3C/svg%3E">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -22,7 +27,6 @@
             --text-primary: #e2e8f0;
             --text-secondary: #94a3b8;
             --accent-success: #00d4aa;
-            --accent: #00d4aa;
             --accent-info: #38bdf8;
             --accent-warn: #ffd93d;
             --accent-alert: #ff6b6b;
@@ -103,11 +107,7 @@
             font-size: 14px;
             transition: opacity 0.6s ease-out, visibility 0.6s;
             cursor: pointer;
-            /* CSS-only failsafe: even if JavaScript dies, the boot screen
-               can never trap a visitor — it fades itself out at 3.5s. */
-            animation: bootAutoHide 0.6s ease 3.5s forwards;
         }
-        @keyframes bootAutoHide { to { opacity: 0; visibility: hidden; pointer-events: none; } }
         #boot-sequence.done { opacity: 0; visibility: hidden; pointer-events: none; }
         .boot-inner { max-width: 760px; width: 100%; margin: 0 auto; }
         .boot-line {
@@ -926,18 +926,6 @@
             overflow-x: auto;
         }
         .arch-wrap svg { display: block; min-width: 720px; width: 100%; height: auto; }
-        /* Skill map */
-        .sm-node { cursor: pointer; }
-        .sm-node circle { fill: var(--bg-secondary); stroke-width: 1.5; transition: opacity 0.25s, stroke-width 0.2s, filter 0.25s; }
-        .sm-node text { fill: var(--text-primary); font-family: 'JetBrains Mono', monospace; font-size: 13px; text-anchor: middle; pointer-events: none; }
-        .sm-node .sm-tag { fill: var(--text-secondary); font-size: 9.5px; }
-        .sm-edge { stroke: var(--border); stroke-width: 1.2; transition: opacity 0.25s, stroke 0.25s, stroke-width 0.2s; }
-        .sm-focus .sm-node:not(.hit) { opacity: 0.12; }
-        .sm-focus .sm-edge:not(.hit) { opacity: 0.07; }
-        .sm-edge.hit { stroke: var(--accent); stroke-width: 2; }
-        .sm-node.hit circle { filter: drop-shadow(0 0 6px rgba(0, 212, 170, 0.5)); stroke-width: 2.5; }
-        .sm-caption { margin-top: 0.8rem; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: var(--accent); min-height: 1.4em; text-align: center; transition: opacity 0.2s; }
-        .sm-caption.muted { color: var(--text-secondary); }
         .arch-node { fill: var(--bg-secondary); stroke: var(--border); rx: 8; }
         .arch-node-accent { stroke: var(--accent-success); }
         .arch-text {
@@ -1039,8 +1027,6 @@
             #back-to-top, #scroll-progress, .cta-group, #videos,
             #print-cv, .boot-hint, footer .shortcuts, .telemetry-note, .arch-wrap { display: none !important; }
             body { background: #fff; color: #111; line-height: 1.45; }
-            * { text-shadow: none !important; box-shadow: none !important; }
-            a { color: #0a54c2 !important; text-decoration: none; }
             .container { max-width: 100%; padding: 0; }
             section, .hero { padding: 0.9rem 0 !important; min-height: 0 !important; page-break-inside: avoid; }
             .section-alt { background: #fff; }
@@ -1107,6 +1093,15 @@
         ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: var(--accent-success); }
 
+        .hero-avatar {
+            width: 96px; height: 96px;
+            border-radius: 50%;
+            border: 2px solid var(--accent-success);
+            box-shadow: 0 0 24px var(--glow-success);
+            margin-bottom: 1.25rem;
+            object-fit: cover;
+        }
+
         .mono { font-family: 'JetBrains Mono', monospace; }
         .gradient-text {
             background: linear-gradient(135deg, var(--accent-success), var(--accent-info));
@@ -1123,9 +1118,7 @@
     <div class="scanlines" aria-hidden="true"></div>
 
     <div id="boot-sequence" role="status" aria-label="Loading sequence">
-        <div class="boot-inner" id="boot-inner">
-            <div class="boot-line info">» welcome to alamahmed.dev — waking up the servers…</div>
-        </div>
+        <div class="boot-inner" id="boot-inner"></div>
         <div class="boot-hint" style="max-width: 760px; margin-left: auto; margin-right: auto; width: 100%;">» loading portfolio… click to skip</div>
     </div>
     <canvas id="particles" aria-hidden="true"></canvas>
@@ -1163,6 +1156,7 @@
         <div class="container">
             <div class="hero-grid">
                 <div class="hero-content">
+                    <img src="avatar.png" alt="Photo of Alam Ahmed" class="hero-avatar" width="96" height="96">
                     <h1 id="hero-name" data-text="Alam Ahmed">Alam Ahmed</h1>
                     <div class="subtitle" id="typewriter" aria-live="polite"></div>
                     <p class="description">
@@ -1170,15 +1164,15 @@
                     </p>
                     <div class="hero-stats">
                         <div class="stat-card">
-                            <div class="stat-value" data-count="4">0</div>
+                            <div class="stat-value" data-count="4" aria-label="4">0</div>
                             <div class="stat-label">Years Cloud Exp</div>
                         </div>
                         <div class="stat-card">
-                            <div class="stat-value" data-count="11">0</div>
+                            <div class="stat-value" data-count="11" aria-label="11">0</div>
                             <div class="stat-label">Talks & Publications</div>
                         </div>
                         <div class="stat-card">
-                            <div class="stat-value" data-count="52">0</div>
+                            <div class="stat-value" data-count="52" aria-label="52">0</div>
                             <div class="stat-label">Certifications</div>
                         </div>
                     </div>
@@ -1203,7 +1197,7 @@
                         <div class="terminal-btn red"></div>
                         <div class="terminal-btn yellow"></div>
                         <div class="terminal-btn green"></div>
-                        <span class="terminal-title">alam@cloud-engineer:~ <span style="opacity: 0.55; font-size: 0.8em;">— click to open interactive shell</span></span>
+                        <span class="terminal-title">alam@cloud-engineer:~</span>
                     </div>
                     <div class="terminal-body" id="terminal-body">
                         <div class="terminal-line">
@@ -1269,8 +1263,8 @@
                     <div class="telemetry-sub">verified on Credly</div>
                 </div>
                 <div class="telemetry-card">
-                    <div class="telemetry-label">Energy Drinks</div>
-                    <div class="telemetry-value warn"><span id="coffee-cups">—</span> cans</div>
+                    <div class="telemetry-label">Caffeine Level</div>
+                    <div class="telemetry-value warn"><span id="coffee-cups">—</span> cups</div>
                     <div class="telemetry-sub">today · status: OPTIMAL</div>
                     <canvas class="spark" width="72" height="28" data-color="#ffd93d" aria-hidden="true"></canvas>
                 </div>
@@ -1285,12 +1279,12 @@
                     <div class="telemetry-sub">Hemel Hempstead → London · remote OK</div>
                 </div>
                 <div class="telemetry-card">
-                    <div class="telemetry-label">Total Visitors <span style="color: var(--accent);">● live</span></div>
+                    <div class="telemetry-label">Total Visitors <span style="color: var(--accent-success);">● live</span></div>
                     <div class="telemetry-value"><span id="live-visitors">—</span></div>
                     <div class="telemetry-sub">counted in a real Postgres DB · you're one of them</div>
                 </div>
                 <div class="telemetry-card">
-                    <div class="telemetry-label">DB Latency <span style="color: var(--accent);">● live</span></div>
+                    <div class="telemetry-label">DB Latency <span style="color: var(--accent-success);">● live</span></div>
                     <div class="telemetry-value info"><span id="live-latency">—</span> ms</div>
                     <div class="telemetry-sub" id="live-latency-sub">round-trip to Supabase, just now</div>
                 </div>
@@ -1444,7 +1438,7 @@
                     <div class="talk-venue">Logicata — Secrets Manager, GuardDuty AI, Trillion-Dollar Billing</div>
                     <div class="talk-meta">
                         <span>Aug 2026</span>
-                        <span style="opacity: 0.5;">Link soon</span>
+                        <span style="opacity: 0.5;">Recording pending</span>
                     </div>
                 </div>
                 <div class="talk-card">
@@ -1462,7 +1456,7 @@
                     <div class="talk-venue">London DevOps Meetup</div>
                     <div class="talk-meta">
                         <span>Mar 2026</span>
-                        <span style="opacity: 0.5;">Link soon</span>
+                        <span style="opacity: 0.5;">Recording pending</span>
                     </div>
                 </div>
                 <div class="talk-card">
@@ -1643,39 +1637,57 @@
     <section id="architecture" class="section-alt">
         <div class="container">
             <div class="section-header">
-                <div class="section-tag">Real Skills, Real Connections</div>
-                <h2 class="section-title">The Stack, <span class="gradient-text">Connected</span></h2>
-                <p class="section-desc">Not a buzzword list — a map of how the tools actually combine in my work. Hover or tap a node.</p>
+                <div class="section-tag">Reference Architecture</div>
+                <h2 class="section-title">How I <span class="gradient-text">Build</span></h2>
+                <p class="section-desc">The pattern I reach for: edge-cached, load-balanced, containerised, policy-checked, observable. Watch the packets flow.</p>
             </div>
             <div class="arch-wrap">
-                <svg id="skillmap" viewBox="0 0 940 360" role="img" aria-label="Interactive map of Alam's skill stack and how the tools connect">
-                    <!-- edges -->
-                    <line class="sm-edge" data-a="AWS" data-b="Terraform" x1="180" y1="60" x2="430" y2="60"/>
-                    <line class="sm-edge" data-a="Terraform" data-b="GitHub Actions" x1="430" y1="60" x2="700" y2="60"/>
-                    <line class="sm-edge" data-a="Terraform" data-b="OPA / Conftest" x1="430" y1="60" x2="300" y2="180"/>
-                    <line class="sm-edge" data-a="OPA / Conftest" data-b="GitHub Actions" x1="300" y1="180" x2="700" y2="60"/>
-                    <line class="sm-edge" data-a="Terraform" data-b="Docker" x1="430" y1="60" x2="520" y2="180"/>
-                    <line class="sm-edge" data-a="Docker" data-b="Kubernetes" x1="520" y1="180" x2="720" y2="180"/>
-                    <line class="sm-edge" data-a="GitHub Actions" data-b="Docker" x1="700" y1="60" x2="520" y2="180"/>
-                    <line class="sm-edge" data-a="Kubernetes" data-b="eBPF / Falco" x1="720" y1="180" x2="820" y2="300"/>
-                    <line class="sm-edge" data-a="Ansible" data-b="Linux" x1="140" y1="300" x2="120" y2="180"/>
-                    <line class="sm-edge" data-a="Linux" data-b="Bash" x1="120" y1="180" x2="300" y2="300"/>
-                    <line class="sm-edge" data-a="Bash" data-b="Python" x1="300" y1="300" x2="560" y2="300"/>
-                    <line class="sm-edge" data-a="Python" data-b="Docker" x1="560" y1="300" x2="520" y2="180"/>
-                    <!-- nodes -->
-                    <g class="sm-node" data-name="AWS" data-desc="Home cloud. IAM done properly, VPCs that make sense, and nothing clicked together by hand in the console."><circle cx="180" cy="60" r="24" stroke="#00d4aa"/><text x="180" y="64">AWS</text><text class="sm-tag" x="180" y="98">cloud</text></g>
-                    <g class="sm-node" data-name="Terraform" data-desc="If it is not in code, it does not exist. Every plan gets policy-checked before it touches anything real."><circle cx="430" cy="60" r="24" stroke="#00d4aa"/><text x="430" y="64">TF</text><text class="sm-tag" x="430" y="98">Terraform</text></g>
-                    <g class="sm-node" data-name="GitHub Actions" data-desc="Push to main, watch it ship. This very site deploys itself the same way."><circle cx="700" cy="60" r="24" stroke="#38bdf8"/><text x="700" y="64">CI</text><text class="sm-tag" x="700" y="98">GitHub Actions</text></g>
-                    <g class="sm-node" data-name="Linux" data-desc="Where I learned everything. 1,400+ tickets of grep, logs, and 2am truths."><circle cx="120" cy="180" r="24" stroke="#8b9bb4"/><text x="120" y="184">LX</text><text class="sm-tag" x="120" y="218">Linux</text></g>
-                    <g class="sm-node" data-name="OPA / Conftest" data-desc="The bouncer. Bad configs do not get past the pull request."><circle cx="300" cy="180" r="24" stroke="#ffd93d"/><text x="300" y="184">OPA</text><text class="sm-tag" x="300" y="218">policy as code</text></g>
-                    <g class="sm-node" data-name="Docker" data-desc="It worked on my machine — so now I ship the machine."><circle cx="520" cy="180" r="24" stroke="#38bdf8"/><text x="520" y="184">DKR</text><text class="sm-tag" x="520" y="218">Docker</text></g>
-                    <g class="sm-node" data-name="Kubernetes" data-desc="Pods, services, and the occasional CrashLoopBackOff keeping me humble."><circle cx="720" cy="180" r="24" stroke="#38bdf8"/><text x="720" y="184">K8s</text><text class="sm-tag" x="720" y="218">Kubernetes</text></g>
-                    <g class="sm-node" data-name="Ansible" data-desc="Write the playbook once, a hundred boxes fall in line."><circle cx="140" cy="300" r="24" stroke="#ff6b6b"/><text x="140" y="304">ANS</text><text class="sm-tag" x="140" y="338">Ansible</text></g>
-                    <g class="sm-node" data-name="Bash" data-desc="Muscle memory from the NOC trenches. If it can be typed, it can be automated."><circle cx="300" cy="300" r="24" stroke="#ff6b6b"/><text x="300" y="304">SH</text><text class="sm-tag" x="300" y="338">Bash</text></g>
-                    <g class="sm-node" data-name="Python" data-desc="When the console will not cut it — automation, tooling, and boto3 glue."><circle cx="560" cy="300" r="24" stroke="#ff6b6b"/><text x="560" y="304">PY</text><text class="sm-tag" x="560" y="338">Python</text></g>
-                    <g class="sm-node" data-name="eBPF / Falco" data-desc="Watching the kernel itself. Security that sees everything and weighs nothing."><circle cx="820" cy="300" r="24" stroke="#ffd93d"/><text x="820" y="304">eBPF</text><text class="sm-tag" x="820" y="338">eBPF / Falco</text></g>
+                <svg viewBox="0 0 940 330" role="img" aria-label="Diagram of a secure cloud platform: users connect through CDN and WAF to a load balancer, into a Kubernetes cluster backed by a database and object storage, with policy checks and observability alongside.">
+                    <path id="ap1" class="arch-edge" d="M130,155 H190"/>
+                    <path id="ap2" class="arch-edge" d="M320,155 H380"/>
+                    <path id="ap3" class="arch-edge" d="M500,155 H560"/>
+                    <path id="ap4" class="arch-edge" d="M760,155 H800"/>
+                    <path class="arch-edge-dashed" d="M440,70 V130"/>
+                    <path class="arch-edge-dashed" d="M450,250 V280 H660 V255"/>
+
+                    <rect class="arch-node" x="20" y="130" width="110" height="50" rx="8"/>
+                    <text class="arch-text" x="75" y="152" text-anchor="middle">Users</text>
+                    <text class="arch-sub" x="75" y="168" text-anchor="middle">recruiters too</text>
+
+                    <rect class="arch-node" x="190" y="130" width="130" height="50" rx="8"/>
+                    <text class="arch-text" x="255" y="152" text-anchor="middle">CDN + WAF</text>
+                    <text class="arch-sub" x="255" y="168" text-anchor="middle">CloudFront</text>
+
+                    <rect class="arch-node" x="380" y="130" width="120" height="50" rx="8"/>
+                    <text class="arch-text" x="440" y="152" text-anchor="middle">Load Balancer</text>
+                    <text class="arch-sub" x="440" y="168" text-anchor="middle">ALB · TLS</text>
+
+                    <rect class="arch-node arch-node-accent" x="380" y="20" width="130" height="50" rx="8"/>
+                    <text class="arch-text" x="445" y="42" text-anchor="middle">OPA / Conftest</text>
+                    <text class="arch-sub" x="445" y="58" text-anchor="middle">policy as code</text>
+
+                    <rect class="arch-node" x="560" y="60" width="200" height="190" rx="10"/>
+                    <text class="arch-text" x="660" y="85" text-anchor="middle">Kubernetes (EKS)</text>
+                    <rect class="arch-node" x="580" y="100" width="160" height="34" rx="6"/>
+                    <text class="arch-sub" x="660" y="121" text-anchor="middle">pod · app</text>
+                    <rect class="arch-node" x="580" y="142" width="160" height="34" rx="6"/>
+                    <text class="arch-sub" x="660" y="163" text-anchor="middle">pod · app</text>
+                    <rect class="arch-node" x="580" y="184" width="160" height="34" rx="6"/>
+                    <text class="arch-sub" x="660" y="205" text-anchor="middle">pod · Falco / eBPF</text>
+
+                    <rect class="arch-node" x="800" y="130" width="120" height="50" rx="8"/>
+                    <text class="arch-text" x="860" y="152" text-anchor="middle">Data Layer</text>
+                    <text class="arch-sub" x="860" y="168" text-anchor="middle">RDS · S3</text>
+
+                    <rect class="arch-node" x="380" y="250" width="140" height="50" rx="8"/>
+                    <text class="arch-text" x="450" y="272" text-anchor="middle">Observability</text>
+                    <text class="arch-sub" x="450" y="288" text-anchor="middle">Datadog · SIEM</text>
+
+                    <circle r="4" fill="#00d4aa"><animateMotion dur="2.2s" repeatCount="indefinite"><mpath href="#ap1"/></animateMotion></circle>
+                    <circle r="4" fill="#38bdf8"><animateMotion dur="2.6s" begin="0.4s" repeatCount="indefinite"><mpath href="#ap2"/></animateMotion></circle>
+                    <circle r="4" fill="#00d4aa"><animateMotion dur="2.4s" begin="0.8s" repeatCount="indefinite"><mpath href="#ap3"/></animateMotion></circle>
+                    <circle r="4" fill="#ffd93d"><animateMotion dur="2.8s" begin="0.2s" repeatCount="indefinite"><mpath href="#ap4"/></animateMotion></circle>
                 </svg>
-                <div class="sm-caption muted" id="sm-caption">// hover a node — every connection is a workflow I've actually run</div>
             </div>
         </div>
     </section>
@@ -1804,7 +1816,7 @@
                     <p style="color: var(--text-secondary);">
                         <span class="mono" style="color: var(--accent-success);">Status:</span> Available for opportunities<br>
                         <span class="mono" style="color: var(--accent-success);">Location:</span> Hemel Hempstead, UK<br>
-                        <span class="mono" style="color: var(--accent-success);">Clearance:</span> Open to work
+                        <span class="mono" style="color: var(--accent-success);">Availability:</span> Immediate start
                     </p>
                     <div style="margin-top: 1.5rem;">
                         <button class="btn btn-secondary" id="print-cv">
@@ -1873,8 +1885,9 @@
         const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
         /* ---------- Boot Sequence (skippable) ---------- */
+        const bootDate = new Date().toISOString().replace('T', ' ').slice(0, 19) + ' UTC';
         const bootLines = [
-            { text: 'BIOS Date: 08/13/2026 14:26:00 UTC', type: 'info', delay: 80 },
+            { text: 'BIOS Date: ' + bootDate, type: 'info', delay: 80 },
             { text: 'CPU: Cloud Engineer v2.0', type: 'success', delay: 180 },
             { text: 'Memory Test: 640K OK... 1048576K OK', type: 'success', delay: 280 },
             { text: 'Initializing Terraform providers...', type: 'info', delay: 420 },
@@ -2033,7 +2046,7 @@
                     heroName.classList.remove('glitching');
                 }, 280);
                 scheduleGlitch();
-            }, 10000 + Math.random() * 10000);
+            }, 5000 + Math.random() * 4000);
         }
 
         /* ---------- Particle Network (pauses when tab hidden) ---------- */
@@ -2270,6 +2283,8 @@
         };
         const projectsGrid = document.getElementById('projects-grid');
         const CACHE_KEY = 'gh_repos_cache_v1';
+        const GH_USER = 'alam-cloud';
+        const GH_LEGACY = 'InfraPlatformer';
 
         function repoCard(r) {
             const a = document.createElement('a');
@@ -2289,7 +2304,15 @@
 
         function renderRepos(repos) {
             projectsGrid.innerHTML = '';
-            repos.slice(0, 6).forEach(r => projectsGrid.appendChild(repoCard(r)));
+            // Skip profile repos, forks, and empty undescribed shells — showing
+            // "No description yet · 0 stars" cards reads as an empty GitHub.
+            const skip = new Set([GH_USER, GH_USER + '.github.io', GH_LEGACY, GH_LEGACY + '.github.io']);
+            const pick = repos.filter(r =>
+                !r.fork && !skip.has(r.name) && r.description && r.description.trim()
+            );
+            // Nothing presentable yet → curated cards beat a wall of empty repos.
+            if (!pick.length) { renderRepoFallback(); return; }
+            pick.slice(0, 6).forEach(r => projectsGrid.appendChild(repoCard(r)));
         }
 
         function renderRepoFallback() {
@@ -2317,8 +2340,6 @@
                 const cached = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
                 if (cached && Date.now() - cached.t < 3600000) { renderRepos(cached.data); return; }
             } catch (e) { /* ignore corrupt cache */ }
-            const GH_USER = 'alam-cloud';
-            const GH_LEGACY = 'InfraPlatformer';
             const fetchRepos = (user) =>
                 fetch(`https://api.github.com/users/${user}/repos?sort=pushed&per_page=6&type=public`)
                     .then(res => { if (!res.ok) throw new Error('rate-limited'); return res.json(); })
@@ -2369,6 +2390,13 @@
                 const ms = Math.round(performance.now() - t0);
                 if (error) throw error;
                 latEl.textContent = ms;
+                // Free-tier DBs sleep between visits: a multi-second first hit is a
+                // cold start, not real latency — say so instead of looking slow.
+                if (ms > 1500) {
+                    latSub.textContent = 'cold start — free-tier DB was asleep, warm hits are fast';
+                } else {
+                    latSub.textContent = 'round-trip to Supabase, just now';
+                }
                 // Count-up animation for the real visitor count
                 const target = parseInt(data, 10);
                 const t1 = performance.now(), dur = 1200;
@@ -2560,38 +2588,6 @@
             }
         });
 
-        /* ---------- Skill map interaction ---------- */
-        (function skillMap() {
-            const svg = document.getElementById('skillmap');
-            if (!svg) return;
-            const caption = document.getElementById('sm-caption');
-            const nodes = svg.querySelectorAll('.sm-node');
-            const edges = svg.querySelectorAll('.sm-edge');
-            const defaultCap = "// hover a node — every connection is a workflow I've actually run";
-            function focus(name, desc) {
-                svg.classList.add('sm-focus');
-                nodes.forEach(n => n.classList.toggle('hit',
-                    n.dataset.name === name ||
-                    [...edges].some(e => (e.dataset.a === name && e.dataset.b === n.dataset.name) ||
-                                         (e.dataset.b === name && e.dataset.a === n.dataset.name))));
-                edges.forEach(e => e.classList.toggle('hit', e.dataset.a === name || e.dataset.b === name));
-                caption.textContent = name + ' — ' + desc;
-                caption.classList.remove('muted');
-            }
-            function reset() {
-                svg.classList.remove('sm-focus');
-                nodes.forEach(n => n.classList.remove('hit'));
-                edges.forEach(e => e.classList.remove('hit'));
-                caption.textContent = defaultCap;
-                caption.classList.add('muted');
-            }
-            nodes.forEach(n => {
-                n.addEventListener('pointerenter', () => focus(n.dataset.name, n.dataset.desc));
-                n.addEventListener('click', () => focus(n.dataset.name, n.dataset.desc));
-            });
-            svg.addEventListener('pointerleave', reset);
-        })();
-
         /* ---------- Global keyboard shortcuts ---------- */
         const SECTION_ORDER = ['about', 'experience', 'videos', 'talks', 'writing', 'projects', 'skills', 'contact'];
         document.addEventListener('keydown', e => {
@@ -2604,7 +2600,7 @@
             } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
                 e.preventDefault();
                 openCli();
-            } else if (/^[1-7]$/.test(e.key)) {
+            } else if (/^[1-8]$/.test(e.key)) {
                 const target = document.getElementById(SECTION_ORDER[parseInt(e.key, 10) - 1]);
                 if (target) target.scrollIntoView({ behavior: prefersReduced ? 'auto' : 'smooth' });
             }
