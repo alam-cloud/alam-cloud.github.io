@@ -1310,9 +1310,9 @@
                     <div class="telemetry-sub">open to cloud / platform engineer roles</div>
                 </div>
                 <div class="telemetry-card">
-                    <div class="telemetry-label">Region</div>
+                    <div class="telemetry-label">Region · <span id="london-clock">--:--:--</span> <span style="color: var(--accent-success);">● live</span></div>
                     <div class="telemetry-value info">eu-west-2</div>
-                    <div class="telemetry-sub">Hemel Hempstead → London · remote OK</div>
+                    <div class="telemetry-sub" id="region-weather">Hemel Hempstead → London · remote OK</div>
                 </div>
                 <div class="telemetry-card">
                     <div class="telemetry-label">Total Visitors <span style="color: var(--accent-success);">● live</span></div>
@@ -1323,9 +1323,15 @@
                     <div class="telemetry-label">DB Latency <span style="color: var(--accent-success);">● live</span></div>
                     <div class="telemetry-value info"><span id="live-latency">—</span> ms</div>
                     <div class="telemetry-sub" id="live-latency-sub">round-trip to Supabase, just now</div>
+                    <canvas class="spark" id="spark-latency" width="72" height="28" aria-hidden="true"></canvas>
+                </div>
+                <div class="telemetry-card">
+                    <div class="telemetry-label">Last Commit <span style="color: var(--accent-success);">● live</span></div>
+                    <div class="telemetry-value"><span id="gh-last-push">—</span></div>
+                    <div class="telemetry-sub" id="gh-last-push-sub">fetching GitHub activity…</div>
                 </div>
             </div>
-            <div class="telemetry-note">// visitors &amp; db latency are live from a real database — the career stats are real too; only the squiggly gauges are simulated</div>
+            <div class="telemetry-note">// visitors, db latency (incl. its sparkline), cert count, weather, clock &amp; last commit are all live — the career stats are real too; only the remaining gauges are decorative</div>
         </div>
     </section>
 
@@ -2191,7 +2197,81 @@
         const careerStart = new Date('2023-03-01T00:00:00');
         const uptimeDays = Math.floor((Date.now() - careerStart.getTime()) / 86400000);
         document.getElementById('uptime-days').textContent = uptimeDays.toLocaleString();
-        document.getElementById('coffee-cups').textContent = 2 + (new Date().getDay() % 3);
+
+        // Caffeine model: derived from actual London time of day — deterministic, not random.
+        (function caffeine() {
+            const h = parseInt(new Date().toLocaleString('en-GB', { timeZone: 'Europe/London', hour: 'numeric', hour12: false }), 10);
+            const cups = h < 8 ? 1 : h < 11 ? 2 : h < 14 ? 3 : h < 17 ? 4 : 0;
+            const status = cups === 0 ? 'status: RECOVERING' : cups >= 4 ? 'status: DIMINISHING RETURNS' : 'status: OPTIMAL';
+            const cupsEl = document.getElementById('coffee-cups');
+            cupsEl.textContent = cups;
+            const sub = cupsEl.closest('.telemetry-card').querySelector('.telemetry-sub');
+            if (sub) sub.textContent = 'today · ' + status;
+        })();
+
+        /* ---------- Live London clock (Region card) ---------- */
+        const clockEl = document.getElementById('london-clock');
+        if (clockEl) {
+            const clockFmt = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/London', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+            const tickClock = () => { clockEl.textContent = clockFmt.format(new Date()); };
+            tickClock();
+            setInterval(tickClock, 1000);
+        }
+
+        /* ---------- Live weather: Open-Meteo (free, no API key, CORS-open) ---------- */
+        (function liveWeather() {
+            const el = document.getElementById('region-weather');
+            if (!el) return;
+            const WMO = {
+                0: 'clear sky', 1: 'mostly clear', 2: 'partly cloudy', 3: 'overcast',
+                45: 'fog', 48: 'rime fog', 51: 'light drizzle', 53: 'drizzle', 55: 'heavy drizzle',
+                56: 'freezing drizzle', 57: 'freezing drizzle', 61: 'light rain', 63: 'rain', 65: 'heavy rain',
+                66: 'freezing rain', 67: 'freezing rain', 71: 'light snow', 73: 'snow', 75: 'heavy snow',
+                77: 'snow grains', 80: 'light showers', 81: 'showers', 82: 'heavy showers',
+                85: 'snow showers', 86: 'snow showers', 95: 'thunderstorm', 96: 'thunderstorm + hail', 99: 'thunderstorm + hail'
+            };
+            fetch('https://api.open-meteo.com/v1/forecast?latitude=51.7532&longitude=-0.4486&current=temperature_2m,weather_code,wind_speed_10m')
+                .then(r => { if (!r.ok) throw new Error('wx'); return r.json(); })
+                .then(d => {
+                    const c = d.current;
+                    el.textContent = Math.round(c.temperature_2m) + '°C · ' + (WMO[c.weather_code] || 'unknown') + ' · wind ' + Math.round(c.wind_speed_10m) + ' km/h · Hemel Hempstead';
+                })
+                .catch(() => { /* static fallback text stays */ });
+        })();
+
+        /* ---------- Live GitHub activity: last public push (cached 30 min) ---------- */
+        (function lastCommit() {
+            const valEl = document.getElementById('gh-last-push');
+            const subEl = document.getElementById('gh-last-push-sub');
+            if (!valEl) return;
+            const EV_CACHE = 'gh_events_cache_v1';
+            const rel = iso => {
+                const s = (Date.now() - new Date(iso).getTime()) / 1000;
+                if (s < 3600) return Math.max(1, Math.floor(s / 60)) + 'm ago';
+                if (s < 86400) return Math.floor(s / 3600) + 'h ago';
+                return Math.floor(s / 86400) + 'd ago';
+            };
+            const apply = ev => {
+                valEl.textContent = rel(ev.created_at);
+                subEl.textContent = 'pushed to ' + ev.repo.name.split('/')[1];
+            };
+            try {
+                const cached = JSON.parse(localStorage.getItem(EV_CACHE) || 'null');
+                if (cached && cached.ev && Date.now() - cached.t < 1800000) { apply(cached.ev); return; }
+            } catch (e) { /* ignore corrupt cache */ }
+            const get = u => fetch(`https://api.github.com/users/${u}/events/public?per_page=30`)
+                .then(r => { if (!r.ok) throw new Error('rate-limited'); return r.json(); });
+            // NB: GH_USER/GH_LEGACY are declared later in this script — use literals here.
+            get('alam-cloud').catch(() => get('InfraPlatformer'))
+                .then(events => {
+                    if (!Array.isArray(events)) throw new Error('bad payload');
+                    const push = events.find(e => e.type === 'PushEvent') || events[0];
+                    if (!push) throw new Error('empty');
+                    try { localStorage.setItem(EV_CACHE, JSON.stringify({ t: Date.now(), ev: push })); } catch (e) {}
+                    apply(push);
+                })
+                .catch(() => { subEl.textContent = 'github api rate-limited — see repos below'; });
+        })();
 
         const teleObserver = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
@@ -2212,7 +2292,7 @@
         });
         document.querySelectorAll('[data-tele]').forEach(el => teleObserver.observe(el));
 
-        document.querySelectorAll('canvas.spark').forEach(spark => {
+        document.querySelectorAll('canvas.spark:not(#spark-latency)').forEach(spark => {
             const c = spark.getContext('2d');
             const color = spark.dataset.color || '#00d4aa';
             const pts = [];
@@ -2246,6 +2326,31 @@
                 }, 1400);
             }
         });
+
+        /* ---------- Real DB-latency sparkline (fed by actual Supabase pings) ---------- */
+        const latSpark = document.getElementById('spark-latency');
+        const latSamples = [];
+        function drawLatencySpark() {
+            if (!latSpark || !latSamples.length) return;
+            const c = latSpark.getContext('2d');
+            const w = latSpark.width, h = latSpark.height;
+            const max = Math.max(200, ...latSamples) * 1.15;
+            c.clearRect(0, 0, w, h);
+            c.beginPath();
+            latSamples.forEach((ms, i) => {
+                const x = latSamples.length === 1 ? w / 2 : (i / (latSamples.length - 1)) * w;
+                const y = h - Math.max(2, (ms / max) * (h - 3));
+                i === 0 ? c.moveTo(x, y) : c.lineTo(x, y);
+            });
+            c.strokeStyle = '#38bdf8';
+            c.lineWidth = 1.5;
+            c.stroke();
+        }
+        function recordLatency(ms) {
+            latSamples.push(ms);
+            if (latSamples.length > 24) latSamples.shift();
+            drawLatencySpark();
+        }
 
         /* ---------- Live GitHub repos ---------- */
         const LANG_COLORS = {
@@ -2362,6 +2467,7 @@
                 const ms = Math.round(performance.now() - t0);
                 if (error) throw error;
                 latEl.textContent = ms;
+                recordLatency(ms);
                 // Free-tier DBs sleep between visits: a multi-second first hit is a
                 // cold start, not real latency — say so instead of looking slow.
                 if (ms > 1500) {
@@ -2377,6 +2483,22 @@
                     visEl.textContent = Math.round(target * (1 - Math.pow(1 - p, 3))).toLocaleString();
                     if (p < 1) requestAnimationFrame(tick);
                 })();
+
+                // Stay honest: re-ping the DB every 30s and grow the real sparkline
+                setInterval(async () => {
+                    if (document.hidden) return;
+                    try {
+                        const tp = performance.now();
+                        const r = await fetch(SUPABASE_URL + '/rest/v1/', { headers: { apikey: SUPABASE_ANON_KEY } });
+                        if (!r.ok && r.status !== 404) throw new Error('ping failed');
+                        const pms = Math.round(performance.now() - tp);
+                        latEl.textContent = pms;
+                        recordLatency(pms);
+                        latSub.textContent = pms > 800
+                            ? 'round-trip to Supabase — a bit sleepy right now'
+                            : 'round-trip to Supabase, just now';
+                    } catch (e) { /* keep last good reading on screen */ }
+                }, 30000);
             } catch (e) {
                 visEl.textContent = 'err';
                 latSub.textContent = 'metrics feed unreachable — site still fine, it is static';
