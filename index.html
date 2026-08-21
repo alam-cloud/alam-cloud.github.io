@@ -791,6 +791,81 @@
             box-shadow: 0 0 20px var(--glow-success);
         }
 
+        /* Guestbook */
+        .gb-grid {
+            display: grid;
+            grid-template-columns: 1.4fr 1fr;
+            gap: 1.5rem;
+            align-items: start;
+        }
+        .gb-terminal { margin: 0; }
+        .gb-entries { max-height: 320px; overflow-y: auto; }
+        .gb-line {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.82rem;
+            padding: 0.4rem 0;
+            border-bottom: 1px dashed var(--border);
+            word-break: break-word;
+        }
+        .gb-line:last-child { border-bottom: none; }
+        .gb-date { color: var(--accent-info); margin-right: 0.5rem; }
+        .gb-name { color: var(--accent-success); font-weight: 600; }
+        .gb-muted { color: var(--text-secondary); }
+        .gb-form {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.25rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .gb-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.68rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--text-secondary);
+        }
+        .gb-input {
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            padding: 0.6rem 0.75rem;
+            width: 100%;
+            resize: vertical;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+        .gb-input:focus {
+            outline: none;
+            border-color: var(--accent-success);
+            box-shadow: 0 0 10px var(--glow-success);
+        }
+        .gb-form-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+            margin-top: 0.4rem;
+        }
+        .gb-count {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+        }
+        .gb-status {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            min-height: 1.2em;
+        }
+        .gb-status.ok { color: var(--accent-success); }
+        .gb-status.err { color: var(--accent-alert); }
+        .gb-form .btn[disabled] { opacity: 0.5; cursor: wait; }
+        @media (max-width: 800px) { .gb-grid { grid-template-columns: 1fr; } }
+
         /* Telemetry strip */
         .telemetry-grid {
             display: grid;
@@ -1170,6 +1245,7 @@
                 <li><a href="#writing" data-spy="writing">/writing</a></li>
                 <li><a href="#projects" data-spy="projects">/projects</a></li>
                 <li><a href="#skills" data-spy="skills">/skills</a></li>
+                <li><a href="#guestbook" data-spy="guestbook">/guestbook</a></li>
                 <li><a href="#contact" data-spy="contact">/contact</a></li>
             </ul>
             <div class="status-indicator">
@@ -1778,6 +1854,41 @@
         </div>
     </section>
 
+    <section id="guestbook">
+        <div class="container">
+            <div class="section-header">
+                <div class="section-tag">Visitor Log</div>
+                <h2 class="section-title">Sign the <span class="gradient-text">Guestbook</span></h2>
+                <p class="section-desc">A real Postgres table on Supabase's free tier — entries deploy instantly and persist. Be nice; there is a row-level bouncer.</p>
+            </div>
+            <div class="gb-grid">
+                <div class="terminal-window gb-terminal" aria-label="Guestbook entries">
+                    <div class="terminal-header">
+                        <div class="terminal-btn red"></div>
+                        <div class="terminal-btn yellow"></div>
+                        <div class="terminal-btn green"></div>
+                        <span class="terminal-title">guestbook — last 10 entries · live</span>
+                    </div>
+                    <div class="terminal-body gb-entries" id="gb-entries" aria-live="polite">
+                        <div class="gb-line gb-muted">$ select * from guestbook order by created_at desc limit 10;</div>
+                        <div class="gb-line gb-muted">connecting to database…</div>
+                    </div>
+                </div>
+                <form class="gb-form" id="gb-form">
+                    <label class="gb-label" for="gb-name">name</label>
+                    <input class="gb-input" id="gb-name" maxlength="30" placeholder="recruiter_jane" autocomplete="off" required>
+                    <label class="gb-label" for="gb-msg">message</label>
+                    <textarea class="gb-input" id="gb-msg" maxlength="200" rows="3" placeholder="great dashboard — let's talk about that platform role…" required></textarea>
+                    <div class="gb-form-row">
+                        <span class="gb-count" id="gb-count">0 / 200</span>
+                        <button type="submit" class="btn btn-primary" id="gb-submit"><span>&#9889;</span> Deploy entry</button>
+                    </div>
+                    <div class="gb-status" id="gb-status" role="status"></div>
+                </form>
+            </div>
+        </div>
+    </section>
+
     <section id="contact" class="section-alt">
         <div class="container">
             <div class="section-header">
@@ -2131,7 +2242,7 @@
                 }
             });
         }, { rootMargin: '-40% 0px -55% 0px' });
-        ['about', 'experience', 'videos', 'talks', 'writing', 'projects', 'skills', 'contact'].forEach(id => {
+        ['about', 'experience', 'videos', 'talks', 'writing', 'projects', 'skills', 'guestbook', 'contact'].forEach(id => {
             const el = document.getElementById(id);
             if (el) spyObserver.observe(el);
         });
@@ -2681,6 +2792,79 @@
                 cliInput.value = cliHistIdx > 0 ? cliHistory[--cliHistIdx] : (cliHistIdx = -1, '');
             }
         });
+
+        /* ---------- Visible guestbook section (same Supabase table as the CLI) ---------- */
+        (function guestbookSection() {
+            const entriesEl = document.getElementById('gb-entries');
+            const form = document.getElementById('gb-form');
+            if (!entriesEl || !form) return;
+            const nameInput = document.getElementById('gb-name');
+            const msgInput = document.getElementById('gb-msg');
+            const countEl = document.getElementById('gb-count');
+            const statusEl = document.getElementById('gb-status');
+            const submitBtn = document.getElementById('gb-submit');
+
+            msgInput.addEventListener('input', () => {
+                countEl.textContent = msgInput.value.length + ' / 200';
+            });
+
+            const setStatus = (msg, cls) => {
+                statusEl.textContent = msg;
+                statusEl.className = 'gb-status' + (cls ? ' ' + cls : '');
+            };
+
+            async function loadEntries() {
+                const sb = await getSb();
+                if (!sb) {
+                    entriesEl.innerHTML = '<div class="gb-line gb-muted">guestbook offline — database not provisioned yet.</div>';
+                    return;
+                }
+                const { data, error } = await sb.from('guestbook').select('name, message, created_at').order('created_at', { ascending: false }).limit(10);
+                if (error) {
+                    entriesEl.innerHTML = '<div class="gb-line gb-muted">query failed: ' + esc(error.message) + '</div>';
+                    return;
+                }
+                if (!data.length) {
+                    entriesEl.innerHTML = '<div class="gb-line gb-muted">0 rows returned — be the first to sign &rarr;</div>';
+                    return;
+                }
+                entriesEl.innerHTML = '<div class="gb-line gb-muted">$ select * from guestbook order by created_at desc limit 10; &mdash; ' + data.length + ' row(s)</div>';
+                data.forEach(r => {
+                    const d = new Date(r.created_at).toISOString().slice(0, 10);
+                    const div = document.createElement('div');
+                    div.className = 'gb-line';
+                    div.innerHTML = '<span class="gb-date">' + d + '</span><span class="gb-name">' + esc(r.name) + '</span><span class="gb-muted">:</span> ' + esc(r.message);
+                    entriesEl.appendChild(div);
+                });
+            }
+            loadEntries();
+
+            form.addEventListener('submit', async e => {
+                e.preventDefault();
+                const name = nameInput.value.trim();
+                const message = msgInput.value.trim();
+                if (!name || !message || name.length > 30 || message.length > 200) {
+                    setStatus('rejected: need a name (≤30 chars) AND a message (≤200).', 'err');
+                    return;
+                }
+                submitBtn.disabled = true;
+                setStatus('provisioning guestbook entry...', '');
+                try {
+                    const sb = await getSb();
+                    if (!sb) { setStatus('guestbook offline — database not provisioned yet.', 'err'); return; }
+                    const { error } = await sb.from('guestbook').insert({ name, message });
+                    if (error) { setStatus('deploy failed: ' + error.message, 'err'); return; }
+                    setStatus('entry committed. thanks for signing!', 'ok');
+                    form.reset();
+                    countEl.textContent = '0 / 200';
+                    loadEntries();
+                } catch (err) {
+                    setStatus('deploy failed: network unreachable.', 'err');
+                } finally {
+                    submitBtn.disabled = false;
+                }
+            });
+        })();
 
         /* ---------- Global keyboard shortcuts ---------- */
         const SECTION_ORDER = ['about', 'experience', 'videos', 'talks', 'writing', 'projects', 'skills', 'contact'];
