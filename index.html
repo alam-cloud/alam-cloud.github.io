@@ -1280,7 +1280,7 @@
                             <div class="stat-label">Years Cloud Exp</div>
                         </div>
                         <div class="stat-card">
-                            <div class="stat-value" data-count="11" aria-label="11">0</div>
+                            <div class="stat-value" data-count="12" aria-label="12">0</div>
                             <div class="stat-label">Talks & Publications</div>
                         </div>
                         <div class="stat-card">
@@ -1613,9 +1613,18 @@
             <div class="section-header">
                 <div class="section-tag">Published Intelligence</div>
                 <h2 class="section-title">Writing on <span class="gradient-text">AWS Builder Center</span></h2>
-                <p class="section-desc">Long-form articles on cloud security, IAM, eBPF, and developer velocity — published as an AWS Community Builder.</p>
+                <p class="section-desc">Long-form articles on cloud security, IAM, eBPF, policy as code, and developer velocity — published as an AWS Community Builder.</p>
             </div>
             <div class="talks-grid">
+                <div class="talk-card" style="border-color: rgba(0, 212, 170, 0.45); box-shadow: 0 0 24px rgba(0, 212, 170, 0.08);">
+                    <div class="talk-type author">&#9679; Article &middot; New</div>
+                    <h3 class="talk-title">Security at the Speed of Synth: Policy as Code in the AWS DevToolchain</h3>
+                    <div class="talk-venue">CDK-nag, CloudFormation Guard, CodePipeline and Amazon Q Developer — making insecure infrastructure undeliverable across the developer loop</div>
+                    <div class="talk-meta">
+                        <span>Aug 2026</span>
+                        <a href="security-at-the-speed-of-synth.html" class="talk-link">Read &rarr;</a>
+                    </div>
+                </div>
                 <div class="talk-card">
                     <div class="talk-type author">&#9679; Article</div>
                     <h3 class="talk-title">The Next Frontier in IAM: Manufacturing Identity Context</h3>
@@ -2657,7 +2666,7 @@
                 '<span class="wrn">Currently levelling up:</span> AZ-104 (Azure Administrator)'
             ],
             talks: () => [
-                '<span class="inf">Article:</span> The Next Frontier in IAM — AWS Builder Center (2026)',
+                '<span class="inf">Article:</span> Security at the Speed of Synth — Policy as Code (Aug 2026)',
                 'Terraforming the Well-Architected Way — AWS London HQ (33)',
                 'eBPF: Revolutionizing Cloud-Native Security — Cloud Native London (50)',
                 'Security as Code with Terraform & OPA — Yorkshire DevOps (35)',
@@ -2667,6 +2676,7 @@
             articles: () => CLI_COMMANDS.writing(),
             writing: () => [
                 '<span class="ok">Published on AWS Builder Center:</span>',
+                '  <span class="inf">Aug 26</span> Security at the Speed of Synth: Policy as Code <span class="ok">New</span>',
                 '  <span class="inf">2026</span>  The Next Frontier in IAM: Manufacturing Identity Context',
                 '  <span class="inf">Jun 26</span> The Unseen Pipeline: Engineering Developer Velocity <span class="wrn">&#11088; Spotlight pick</span>',
                 '  <span class="inf">Apr 26</span> The Zero-Trust Fortress: Impenetrable AWS Environments',
