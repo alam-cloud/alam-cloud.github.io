@@ -1396,6 +1396,21 @@
         .article-section .article-body pre {
             padding: 1.1rem 1.2rem;
         }
+        /* Mobile overflow fixes: wrap long unbroken identifiers (e.g. AWS resource
+           names) in prose; on narrow screens let wide tables scroll instead of
+           breaking the page layout */
+        .article-section .article-body p,
+        .article-section .article-body li {
+            overflow-wrap: anywhere;
+        }
+        @media (max-width: 640px) {
+            .article-section .article-body table {
+                display: block;
+                max-width: 100%;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+        }
         .article-section .article-body .sourceCode pre { margin: 0; border: 0; box-shadow: none; }
         .article-section .article-body pre code {
             color: #dbeafe;
