@@ -1,10 +1,15 @@
 #!/usr/bin/env python3
-"""Refresh the static AWS Builder Center article cards and embedded article
-sections in index.html.
+"""Refresh the static AWS Builder Center article cards and article sections in
+index.html, writing lazily loaded body fragments to articles/.
 
 Builder Center's content API is internal and CORS-restricted, so this script is
 intended to run during a scheduled GitHub Actions job rather than in a visitor's
 browser. It uses Python's standard library plus pandoc for Markdown rendering.
+
+Fetched and rendered bodies are cached in scripts/.article-cache.json (keyed by
+content id + last-modified timestamp); unchanged articles are not re-fetched.
+Commit the cache file alongside index.html and articles/ so the scheduled job
+benefits from it. Use --no-cache to force a full refresh.
 """
 
 from __future__ import annotations
@@ -25,6 +30,9 @@ from urllib.request import Request, urlopen
 
 ROOT = Path(__file__).resolve().parents[1]
 INDEX = ROOT / "index.html"
+ARTICLES_DIR = ROOT / "articles"
+CACHE_FILE = ROOT / "scripts" / ".article-cache.json"
+CACHE_VERSION = 1
 
 SEARCH_URL = "https://api.builder.aws.com/cs/search"
 ARTICLE_URL = "https://api.builder.aws.com/cs/v2/articles"
@@ -93,6 +101,21 @@ def request_json(url: str, payload: dict[str, Any] | None = None, attempts: int 
             if attempt < attempts:
                 time.sleep(1.5 * attempt)
     raise RuntimeError(f"Builder Center request failed after {attempts} attempts: {last_error}")
+
+
+def load_cache() -> dict[str, Any]:
+    """Read the on-disk article cache; tolerate a missing or corrupt file."""
+    try:
+        data = json.loads(CACHE_FILE.read_text())
+        if data.get("version") != CACHE_VERSION or not isinstance(data.get("articles"), dict):
+            raise ValueError("stale cache format")
+        return data
+    except (OSError, json.JSONDecodeError, ValueError):
+        return {"version": CACHE_VERSION, "articles": {}}
+
+
+def save_cache(cache: dict[str, Any]) -> None:
+    CACHE_FILE.write_text(json.dumps(cache, indent=2, sort_keys=True) + "\n")
 
 
 def post_json(payload: dict[str, Any], attempts: int = 3) -> dict[str, Any]:
@@ -284,7 +307,19 @@ def toc_from_body(body_html: str) -> str:
     return "\n".join(links)
 
 
-def render_section(item: dict[str, Any], body_html: str) -> str:
+def render_fragment(item: dict[str, Any], body_html: str) -> str:
+    """The lazily loaded article body: rendered markdown + attribution."""
+    canonical = html.escape(external_url(item), quote=True)
+    return (
+        body_html
+        + '\n<hr/>\n<p><em>Originally published on <a href="'
+        + canonical
+        + '">AWS Builder Center</a>. Any opinions are those of the individual author and may not reflect the opinions of AWS.</em></p>\n'
+    )
+
+
+def render_section(item: dict[str, Any], body_html: str, fragment_rel: str) -> str:
+    """Render the inline article shell; the body is fetched on demand by the browser."""
     slug = article_slug(item)
     title = html.escape(article_title(item))
     description = html.escape(clean_description(item))
@@ -326,10 +361,8 @@ def render_section(item: dict[str, Any], body_html: str) -> str:
 </section>
 <div class="article-layout">
 {toc_block}
-<article class="article-body">
-{body_html}
-<hr/>
-<p><em>Originally published on <a href="{canonical}">AWS Builder Center</a>. Any opinions are those of the individual author and may not reflect the opinions of AWS.</em></p>
+<article class="article-body" data-lazy-article="{fragment_rel}" data-canonical="{canonical}">
+<p class="article-lazy-placeholder">// full text loads when you get here &mdash; or <a href="{canonical}" target="_blank" rel="noopener noreferrer">read it on AWS Builder Center</a></p>
 </article>
 </div>
 <footer class="article-footer">
@@ -371,42 +404,87 @@ def replace_marked(source: str, start: str, end: str, body: str, closing_indent:
     return updated
 
 
-def build_sections(articles: list[dict[str, Any]]) -> tuple[str, set[str]]:
-    """Fetch and render full article bodies. Returns (sections_html, embedded_ids).
+def build_sections(articles: list[dict[str, Any]], use_cache: bool = True) -> tuple[str, set[str], bool]:
+    """Render article shells and write lazily loaded body fragments.
+
+    Returns (shells_html, embedded_ids, cache_changed). Article bodies are served
+    from articles/<slug>.html and fetched by the browser on demand, keeping
+    index.html small. Bodies are cached in scripts/.article-cache.json keyed by
+    content id + last-modified timestamp, so unchanged articles are neither
+    re-fetched nor re-rendered.
 
     If a body cannot be fetched or rendered, that article is skipped: its card
     falls back to linking to Builder Center instead of a local section.
     """
-    sections: list[str] = []
+    cache = load_cache() if use_cache else {"version": CACHE_VERSION, "articles": {}}
+    cached_articles: dict[str, Any] = cache.setdefault("articles", {})
+    cache_changed = False
+
+    shells: list[str] = []
     embedded: set[str] = set()
+    written_fragments: set[str] = set()
+    ARTICLES_DIR.mkdir(exist_ok=True)
+
     for item in articles:
         content_id = str(item.get("contentId") or "")
         if not content_id or content_id in LOCAL_ARTICLE_LINKS:
             if content_id in LOCAL_ARTICLE_LINKS:
                 embedded.add(content_id)
             continue
-        try:
-            full = fetch_full_article(content_id)
-            markdown = str(full.get("markdownDescription") or "")
-            if len(markdown) < 200:
-                raise RuntimeError("article body looks empty")
-            # Prefix every generated id with the content id tail so pandoc's
-            # per-document anchors (cb1, cb2, ...) can never collide across
-            # embedded articles on the same page.
-            id_prefix = "x" + re.sub(r"[^A-Za-z0-9]", "", content_id)[-6:] + "-"
-            body_html = markdown_to_html(preprocess_markdown(markdown), id_prefix)
-        except Exception as exc:  # noqa: BLE001 - degrade to external link
-            print(f"warning: could not embed {content_id}: {exc}", file=sys.stderr)
-            continue
-        sections.append(render_section(item, body_html))
+
+        slug = article_slug(item)
+        modified = timestamp_ms(item)
+        entry = cached_articles.get(content_id) or {}
+        body_html = entry.get("html") if entry.get("lastModified", 0) >= modified else None
+
+        if body_html:
+            print(f"cache hit: {slug}")
+        else:
+            try:
+                full = fetch_full_article(content_id)
+                markdown = str(full.get("markdownDescription") or "")
+                if len(markdown) < 200:
+                    raise RuntimeError("article body looks empty")
+                # Prefix every generated id with the content id tail so pandoc's
+                # per-document anchors (cb1, cb2, ...) can never collide across
+                # embedded articles on the same page.
+                id_prefix = "x" + re.sub(r"[^A-Za-z0-9]", "", content_id)[-6:] + "-"
+                body_html = markdown_to_html(preprocess_markdown(markdown), id_prefix)
+            except Exception as exc:  # noqa: BLE001 - degrade to external link
+                print(f"warning: could not embed {content_id}: {exc}", file=sys.stderr)
+                continue
+            cached_articles[content_id] = {
+                "lastModified": modified,
+                "slug": slug,
+                "markdown": markdown,
+                "html": body_html,
+            }
+            cache_changed = True
+            print(f"fetched + rendered: {slug}")
+
+        fragment_name = f"{slug}.html"
+        fragment_html = render_fragment(item, body_html)
+        fragment_path = ARTICLES_DIR / fragment_name
+        if not fragment_path.exists() or fragment_path.read_text() != fragment_html:
+            fragment_path.write_text(fragment_html)
+        written_fragments.add(fragment_name)
+
+        shells.append(render_section(item, body_html, f"articles/{fragment_name}"))
         embedded.add(content_id)
-    return "\n".join(sections), embedded
+
+    # Remove fragments for articles that dropped out of the rendered set.
+    for stale in ARTICLES_DIR.glob("*.html"):
+        if stale.name not in written_fragments:
+            stale.unlink()
+            print(f"pruned stale fragment: articles/{stale.name}")
+
+    return "\n".join(shells), embedded, cache, cache_changed
 
 
-def update_index(articles: list[dict[str, Any]], dry_run: bool = False) -> bool:
+def update_index(articles: list[dict[str, Any]], dry_run: bool = False, use_cache: bool = True) -> bool:
     source = INDEX.read_text()
 
-    sections_html, embedded = build_sections(articles)
+    sections_html, embedded, cache, cache_changed = build_sections(articles, use_cache=use_cache)
     cards = "\n".join(render_card(item, position, embedded) for position, item in enumerate(articles))
     latest = articles[0]
     latest_line = f'<span class="inf">Article:</span> {html.escape(article_title(latest), quote=False)} ({article_date(latest).strftime("%b %Y")})'
@@ -421,6 +499,10 @@ def update_index(articles: list[dict[str, Any]], dry_run: bool = False) -> bool:
         print(updated[updated.index(CARD_START):updated.index(CARD_END) + len(CARD_END)])
         return updated != source
 
+    if cache_changed:
+        save_cache(cache)
+        print(f"Article cache written to {CACHE_FILE}")
+
     if updated != source:
         INDEX.write_text(updated)
         rendered = sections_html.count('<section id=')
@@ -434,6 +516,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--dry-run", action="store_true", help="print the generated cards without editing index.html")
     parser.add_argument("--max-articles", type=int, default=DEFAULT_MAX_ARTICLES, help="number of latest articles to render")
+    parser.add_argument("--no-cache", action="store_true", help="ignore the on-disk cache and re-fetch every article body")
     args = parser.parse_args()
 
     found: dict[str, dict[str, Any]] = {}
@@ -445,7 +528,7 @@ def main() -> int:
         print("No Builder Center articles matched the configured author identity", file=sys.stderr)
         return 1
 
-    update_index(articles, dry_run=args.dry_run)
+    update_index(articles, dry_run=args.dry_run, use_cache=not args.no_cache)
     return 0
 
 
