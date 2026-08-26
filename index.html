@@ -1515,9 +1515,12 @@
 
         @media (min-width: 1240px) {
             .article-section .article-body > pre, .article-section .article-body > .sourceCode, .article-section .article-body > table {
-                width: 58rem;
-                max-width: 58rem;
-                margin-left: -7rem;
+                /* Breakout for wide code/tables, bounded so the block can never
+                   reach the sticky TOC: shift left by (gap − 1rem), grow right by
+                   the same, and never extend past the viewport edge. */
+                width: min(58rem, calc(100vw - 15.5rem - clamp(3rem, 6vw, 5.5rem) - 5rem));
+                max-width: none;
+                margin-left: calc(1rem - clamp(3rem, 6vw, 5.5rem));
             }
         }
         @media (max-width: 980px) {
