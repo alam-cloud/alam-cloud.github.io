@@ -1,367 +1,453 @@
-# Security at the Speed of Synth: Policy as Code in the AWS DevToolchain
+#!/usr/bin/env python3
+"""Refresh the static AWS Builder Center article cards and embedded article
+sections in index.html.
 
-**CDK-nag, CloudFormation Guard, CodePipeline and Amazon Q Developer — how to make insecure infrastructure undeliverable without ever leaving the AWS toolchain.**
+Builder Center's content API is internal and CORS-restricted, so this script is
+intended to run during a scheduled GitHub Actions job rather than in a visitor's
+browser. It uses Python's standard library plus pandoc for Markdown rendering.
+"""
 
-**Alam Ahmed**  
-Community Builder  
-Cloud Infrastructure Engineer | AWS Enthusiast | DevOps
+from __future__ import annotations
 
----
+import argparse
+import html
+import json
+import re
+import subprocess
+import sys
+import time
+from datetime import UTC, datetime
+from pathlib import Path
+from typing import Any
+from urllib.error import HTTPError, URLError
+from urllib.parse import urlencode
+from urllib.request import Request, urlopen
 
-## The gate is in the wrong place
+ROOT = Path(__file__).resolve().parents[1]
+INDEX = ROOT / "index.html"
 
-Here's a scene every AWS shop will recognise. A developer writes a CDK stack on Monday. The pull request lands on Wednesday. Security review happens on Friday — in a spreadsheet, by a human who is also reviewing eleven other teams — and the deployment goes out the following Tuesday with a `0.0.0.0/0` ingress rule nobody clocked, because it was hidden inside a convenience method three construct levels deep.
+SEARCH_URL = "https://api.builder.aws.com/cs/search"
+ARTICLE_URL = "https://api.builder.aws.com/cs/v2/articles"
+BUILDER_ORIGIN = "https://builder.aws.com"
+AUTHOR_NAME = "Alam Ahmed"
+AUTHOR_ALIAS = "techghost"
+AUTHOR_CREATOR_ID = "7525ab03-10b5-48b1-8fd9-58300af609fb"
 
-We keep calling this "shift-left security," but look at where the gate actually sits: after the code is written, after the review, millimetres in front of production — staffed by the most overloaded people in the building.
+DEFAULT_MAX_ARTICLES = 6
+MAX_PAGES_PER_QUERY = 6
 
-That's not shifting left. That's just a slower right.
-
-I'm a DevTools person, so my instinct is never "add another review." It's **move the check into the tool the developer is already using**. And this is where the AWS-native toolchain has quietly become genuinely excellent — because security enforcement can now live at every stage of the developer loop:
-
-```text
-INNER LOOP (seconds)          OUTER LOOP (minutes)           RUNTIME (always)
-─────────────────────         ─────────────────────          ─────────────────
-Editor: Amazon Q Developer    Synth: cdk-nag                 Config rules
-  security scanning           Pipeline: CodeBuild + Guard    Security Hub
-CLI: cdk synth fails          Deploy: CodePipeline gates     RCPs / SCPs
-  on violations                                                (the hard backstop)
-```
-
-Same policies. Multiple enforcement points. The developer gets feedback in seconds in the editor, the pipeline hard-blocks in minutes, and the cloud itself is the final backstop. Nobody waits for Friday's spreadsheet.
-
-Let's build the whole thing — and, just as importantly, let's talk about where the model needs operational discipline.
-
----
-
-## Layer 1 — The editor: Amazon Q Developer as the first reviewer
-
-The cheapest security finding is the one that never gets typed. Amazon Q Developer in the IDE does two useful jobs here: it can generate infrastructure code that starts closer to AWS best practice, and its security scanning can flag issues inline — hardcoded credentials, overly permissive IAM, unencrypted resources — before the file is even saved.
-
-There is a practical caveat, though: **AI assistance is probabilistic, not deterministic**. Giving the assistant good repository context — a README that documents your tagging standard, encryption baseline and module conventions — can improve the quality of suggestions where the tool supports that context. But it is not a guarantee. The model does not become your control plane just because it has read your standards document.
-
-So treat the AI layer as a force multiplier, not a foundation. It can reduce the number of mistakes that reach the next stage. It should never be the only thing standing between a bad idea and production.
-
-You don't build a security posture on "the model probably won't suggest a public bucket." You build it on deterministic checks. That's the next layer.
-
----
-
-## Layer 2 — Synth time: cdk-nag makes the CDK refuse
-
-This is the crown jewel of AWS-native policy-as-code. If you're a CDK shop and not using it, stop reading and install `cdk-nag` right now. I'll wait.
-
-`cdk-nag` walks your construct tree at synthesis and evaluates every CloudFormation resource against a rule pack — AWS Solutions, NIST 800-53, HIPAA, PCI DSS, Serverless and more. If a resource violates a rule at `ERROR` level, `cdk synth` itself fails. The template never materialises. There is nothing to deploy.
-
-```ts
-// bin/app.ts
-import { App, Validations } from 'aws-cdk-lib';
-import { AwsSolutionsChecks, NIST80053R5Checks } from 'cdk-nag';
-import { PlatformStack } from '../lib/platform-stack';
-
-const app = new App();
-new PlatformStack(app, 'PlatformStack');
-
-// Every construct in the app, every synth, every time
-Validations.of(app).addPlugins(new AwsSolutionsChecks(app, { verbose: true }));
-Validations.of(app).addPlugins(new NIST80053R5Checks(app));
-
-app.synth();
-```
-
-Watch what happens when a developer writes the classic mistake:
-
-```ts
-// lib/platform-stack.ts — what not to do
-const sg = new ec2.SecurityGroup(this, 'BastionSg', { vpc });
-sg.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(22));
-```
-
-```text
-$ cdk synth
-[Error at /PlatformStack/BastionSg/Resource] AwsSolutions-EC23:
-The Security Group allows for 0.0.0.0/0 ingress.
-[Error at /PlatformStack/BastionSg/Resource] NIST80053R5-EC2-...
-```
-
-Synth fails. Feedback arrives in about ten seconds, in the terminal the developer is already staring at, naming the exact construct path and the exact rule. Compare that to the Friday spreadsheet.
-
-Three details separate teams who succeed with `cdk-nag` from teams who disable it in a fortnight.
-
-### 1. Acknowledge deliberately, not silently
-
-Every suppression should be code, reviewed in a pull request, with a mandatory reason and an expiry or review date:
-
-```ts
-Validations.of(sg).acknowledge({
-  id: 'AwsSolutions-EC23',
-  reason: 'Bastion reachable from office egress IP only; JIRA SEC-412; review 2026-12-01',
-});
-```
-
-Acknowledgments are auditable in version control and recorded in CDK's policy-validation report. For compliance tooling that expects the older template-level format, `cdk-nag` can also write acknowledged rules into CloudFormation metadata. An exception with a ticket number, an owner and a review date is governance. A `--force` flag is not.
-
-Make the exception format boring and consistent:
-
-- **Rule ID**
-- **Business or technical reason**
-- **Named owner**
-- **Ticket**
-- **Expiry or review date**
-- **Compensating control**
-
-The expiry date matters. An exception without a deadline is not an exception; it is a quiet policy deletion.
-
-### 2. Ship your own NagPack
-
-The built-in packs encode AWS's opinions. Your organisation has its own — mandatory cost-allocation tags, approved regions, naming standards, approved KMS keys. A custom pack is one class:
-
-```ts
-// lib/org-checks.ts
-import { CfnResource } from 'aws-cdk-lib';
-import { IConstruct } from 'constructs';
-import {
-  NagMessageLevel,
-  NagPack,
-  NagPackProps,
-  NagRuleCompliance,
-} from 'cdk-nag';
-
-export class OrgChecks extends NagPack {
-  public readonly name = 'OrgChecks';
-
-  constructor(scope?: IConstruct, props?: NagPackProps) {
-    super(scope, props);
-    this.packName = 'Org';
-  }
-
-  protected checkResource(node: CfnResource): void {
-    this.applyRule({
-      ruleSuffixOverride: 'ResourceOwnerTag',
-      info: 'Every resource must carry an "owner" tag.',
-      explanation: 'Untagged resources cannot be attributed during incident response or cost review.',
-      level: NagMessageLevel.ERROR,
-      rule: (resource: CfnResource) => {
-        const tags = resource.stack.resolve(resource.tags.renderTags());
-        return Array.isArray(tags) && tags.some(t => t.Key === 'owner')
-          ? NagRuleCompliance.COMPLIANT
-          : NagRuleCompliance.NON_COMPLIANT;
-      },
-      node,
-    });
-  }
-}
-```
-
-Publish it as an internal package — CodeArtifact is the obvious home — pin the version, and every team inherits the organisation's standards on their next dependency update. This is the DevTools dream: **policy distributed as a dependency**.
-
-### 3. Warnings are a migration strategy, not a permanent hiding place
-
-Run new packs at `WARN` for a fixed period while teams remediate, then promote them to `ERROR`. Hard-blocking fifty legacy findings on day one is how policy-as-code initiatives get routed around.
-
-But warnings need a plan. Otherwise they become background noise.
-
-A workable adoption path looks like this:
-
-1. **Baseline the estate.** Use AWS Config, Security Hub and your existing scanners to understand what is already non-compliant.
-2. **Introduce rules at `WARN`.** Announce the window and the deadline before the first build fails.
-3. **Group findings by service or team.** "S3 public access" and "open security groups" are easier to burn down than one giant wall of findings.
-4. **Fix the highest-risk classes first.** Public exposure, IAM privilege escalation, unencrypted data and missing audit trails usually outrank naming conventions.
-5. **Promote by cohort.** Move new applications to `ERROR` first, then platform-owned modules, then legacy estates as remediation completes.
-6. **Expire exceptions.** Require an owner, ticket and review date for every suppression.
-7. **Audit the bypasses monthly.** If the same team needs the same exception every month, the policy, the module or the training needs attention.
-
-The secure path must be the fastest path — but during migration, you also need a visible path from today's reality to tomorrow's baseline.
-
----
-
-## Layer 3 — The pipeline: CloudFormation Guard inside CodePipeline
-
-`cdk-nag` validates at the construct layer. But constructs aren't the only way templates come into existence. Raw overrides, imported templates via `cloudformation-include`, generated resources and legacy CloudFormation estates being modernised can all bypass the intent expressed in high-level constructs.
-
-You need a second, independent check on the synthesized template itself. That's what CloudFormation Guard (`cfn-guard`) is for: a policy language that evaluates the final JSON or YAML artifact.
-
-```guard
-# pipeline.guard — no public S3 buckets, no world-open ingress
-
-rule no_public_buckets {
-  let buckets = Resources.*[ Type == "AWS::S3::Bucket" ]
-
-  when %buckets !empty {
-    %buckets.Properties.PublicAccessBlockConfiguration exists
-    %buckets.Properties.PublicAccessBlockConfiguration.BlockPublicAcls == true
-    %buckets.Properties.PublicAccessBlockConfiguration.BlockPublicPolicy == true
-      <<Bucket %buckets is missing a public access block>>
-  }
+# Articles whose full text is maintained by hand inside index.html. Their cards
+# link to the hand-maintained section, and the API body is never rendered over it.
+LOCAL_ARTICLE_LINKS = {
+    "/content/3IPv53avJpYSJKzCUldxEQZ0k2d": "#security-at-the-speed-of-synth",
 }
 
-rule no_world_open_ingress {
-  let sgs = Resources.*[ Type == "AWS::EC2::SecurityGroup" ]
-
-  when %sgs !empty {
-    %sgs.Properties.SecurityGroupIngress[*].CidrIp != "0.0.0.0/0"
-      <<SecurityGroup %sgs allows ingress from 0.0.0.0/0>>
-  }
+ARTICLE_TYPE_OVERRIDES = {
+    "/content/3IPv53avJpYSJKzCUldxEQZ0k2d": "Article · New",
+    "/content/3HGyvM25DcXQaOeeIUhGF6Tj6PQ": "Article · Talk Recap",
+    "/content/3ElShp5DBoeQCRfc5kaBhwsruIe": "Article · ★ Spotlight Pick",
 }
-```
 
-Now wire it into a native AWS pipeline. The shape of it in CDK Pipelines — or a plain CodeBuild step, because the idea is the same:
+DESCRIPTION_OVERRIDES = {
+    "/content/3IPv53avJpYSJKzCUldxEQZ0k2d": "CDK-nag, CloudFormation Guard, CodePipeline and Amazon Q Developer — making insecure infrastructure undeliverable across the developer loop",
+    "/content/3HGyvM25DcXQaOeeIUhGF6Tj6PQ": "AWS London Well-Architected User Group recap — practical lessons on Terraform reviews that catch real risk",
+    "/content/3FuJq2YhQh31l3A3FOxBwIRin0A": "A guarded deployment pattern for AI-generated infrastructure using Lambda MicroVMs, policy checks and progressive delivery",
+    "/content/3FDkVLwnZueCOxVOJGoXNRgIIaA": "Beyond terraform apply — orchestrating hundreds of MSP accounts with guardrails and infrastructure as a product",
+    "/content/3ElShp5DBoeQCRfc5kaBhwsruIe": "Featured in the AWS Community Builders Spotlight — how Kiro, AgentCore and Transform are reshaping developer experience",
+    "/content/3EM8bMXL03D2K5eG4alo8lrSP8w": "AppConfig targeting, Lambda canary deployments and CloudWatch Synthetics for automated promotion and rollback",
+}
 
-```ts
-// A validation wave that runs Guard against every synthesized template
-pipeline.addWave('PolicyValidation', {
-  pre: [
-    new CodeBuildStep('CfnGuard', {
-      input: synthStep, // the cdk.out cloud assembly
-      installCommands: [
-        'curl --proto "=https" --tlsv1.2 -sSf https://raw.githubusercontent.com/aws-cloudformation/cloudformation-guard/main/install-guard.sh | sh',
-        'export PATH=$PATH:~/.guard/bin',
-      ],
-      commands: [
-        'for t in cdk.out/*.template.json; do cfn-guard validate -r pipeline.guard -d "$t" || exit 1; done',
-      ],
-    }),
-  ],
-});
-```
+CARD_START = "<!-- BUILDER-ARTICLES:START -->"
+CARD_END = "<!-- BUILDER-ARTICLES:END -->"
+BODY_START = "<!-- BUILDER-ARTICLE-BODIES:START -->"
+BODY_END = "<!-- BUILDER-ARTICLE-BODIES:END -->"
+LATEST_START = "// BUILDER-LATEST-ARTICLE:START"
+LATEST_END = "// BUILDER-LATEST-ARTICLE:END"
+TERMINAL_START = "// BUILDER-TERMINAL-ARTICLES:START"
+TERMINAL_END = "// BUILDER-TERMINAL-ARTICLES:END"
 
-Two checkers, two layers, two different perspectives, one property that matters: a finding has to be acknowledged deliberately twice to slip through both. The placement matters too — this runs against the cloud assembly **before any deploy stage**, so the blast radius of a policy failure is a red pipeline, not a broken account.
+API_HEADERS = {
+    "accept": "application/json",
+    # This is the anonymous session marker sent by Builder Center's own SPA.
+    "builder-session-token": "dummy",
+    "origin": BUILDER_ORIGIN,
+    "referer": BUILDER_ORIGIN + "/",
+    "user-agent": "alamahmed.dev-static-article-sync/1.0",
+}
 
-### Avoid turning two layers into two sources of truth
 
-The obvious objection is duplication: "Why am I maintaining one rule in TypeScript and another in Guard's DSL?"
+def request_json(url: str, payload: dict[str, Any] | None = None, attempts: int = 3) -> dict[str, Any]:
+    data = None
+    headers = dict(API_HEADERS)
+    if payload is not None:
+        data = json.dumps(payload).encode("utf-8")
+        headers["content-type"] = "application/json"
+    last_error: Exception | None = None
+    for attempt in range(1, attempts + 1):
+        try:
+            request = Request(url, data=data, headers=headers, method="POST" if data else "GET")
+            with urlopen(request, timeout=30) as response:
+                return json.loads(response.read().decode("utf-8"))
+        except (HTTPError, URLError, TimeoutError, json.JSONDecodeError) as exc:
+            last_error = exc
+            if attempt < attempts:
+                time.sleep(1.5 * attempt)
+    raise RuntimeError(f"Builder Center request failed after {attempts} attempts: {last_error}")
 
-The answer is not to write every rule twice forever. It is to be clear about what each layer owns:
 
-- **`cdk-nag` owns construct intent.** It can see patterns, L2 constructs and abstractions before they become CloudFormation.
-- **Guard owns the deployable artifact.** It checks what CloudFormation will actually receive, including raw overrides and imported templates.
+def post_json(payload: dict[str, Any], attempts: int = 3) -> dict[str, Any]:
+    return request_json(SEARCH_URL, payload=payload, attempts=attempts)
 
-For a small estate, a documented mapping between NagPack rules and Guard rules may be enough. For a larger organisation, define a shared policy catalogue — rule ID, description, severity, owner, remediation link — and generate or review both implementations from it. The policy has one identity even if it has two technical expressions.
 
-That prevents the slow divergence where `cdk-nag` says one thing, Guard says another, and nobody remembers which is authoritative.
+def fetch_full_article(content_id: str) -> dict[str, Any]:
+    url = ARTICLE_URL + "?" + urlencode({"articleId": content_id})
+    return request_json(url)
 
-### Harden the pipeline itself
 
-A few pipeline-hardening notes from the DevTools side, because the pipeline is also an attack surface:
+def is_author_item(item: dict[str, Any]) -> bool:
+    author = item.get("author") or {}
+    return (
+        author.get("creatorId") == AUTHOR_CREATOR_ID
+        or author.get("alias") == AUTHOR_ALIAS
+    )
 
-- **Do not let the pipeline authenticate with long-lived credentials.** Use CodeConnections for source-control integration, OIDC where an external CI system needs AWS access, and short-lived, least-privilege IAM roles for deployment. If your pipeline still relies on an IAM user's access key sitting in a parameter store, that is your highest-priority security finding. Everything else in this article is garnish.
-- **Policy files are pipeline inputs.** Version and review them like application code. A pull request that weakens `pipeline.guard` should trigger the same scrutiny as a pull request that opens a port — ideally stricter, with a security-team `CODEOWNERS` review on the policy path.
-- **Manual approval is not a substitute for automation.** Use it where judgment or blast radius genuinely requires a human: irreversible production data migrations, shared networking changes, unusual cost increases, third-party vendor access or ambiguous data-classification decisions.
-- **Design for approval fatigue.** A human reviewing fifty routine deployments a day is not a control; they are a bottleneck with a mouse. Automate the objective checks and reserve human review for the decisions that need context, trade-offs and accountability.
 
----
+def search_author(query: str) -> dict[str, dict[str, Any]]:
+    found: dict[str, dict[str, Any]] = {}
+    next_token: str | None = None
+    stale_pages = 0
 
-## Layer 4 — The backstop: the cloud says no
+    for page in range(1, MAX_PAGES_PER_QUERY + 1):
+        category: dict[str, Any] = {"category": "ARTICLE"}
+        if next_token:
+            category["nextToken"] = str(next_token)
+        payload = {
+            "locale": "en",
+            "search": query,
+            "categories": [category],
+        }
+        data = post_json(payload)
+        article_category = (data.get("categories") or {}).get("ARTICLE") or {}
+        items = article_category.get("feedContents") or []
 
-Everything above can still be bypassed by someone with console access and sufficient privilege. So the final layer isn't in the toolchain at all — it's in AWS Organizations.
+        new_hits = 0
+        for item in items:
+            if not is_author_item(item):
+                continue
+            content_id = item.get("contentId")
+            if content_id and content_id not in found:
+                found[content_id] = item
+                new_hits += 1
 
-Resource Control Policies are the non-negotiable floor where they are available: no matter what any pipeline, developer or break-glass role attempts, an RCP can make entire classes of action — disabling CloudTrail, leaving the approved region set, touching the billing configuration — impossible at the organisation level.
+        stale_pages = stale_pages + 1 if new_hits == 0 else 0
+        next_token_value = article_category.get("nextToken")
+        next_token = str(next_token_value) if next_token_value else None
+        if not next_token or (page >= 2 and stale_pages >= 2):
+            break
 
-Where RCPs are not yet available or not yet adopted, Service Control Policies are the nearest organisation-level equivalent, with the caveat that they are attached to organisations, OUs or accounts rather than directly to resources. That makes OU design part of your security architecture. A coarse SCP applied to the wrong OU can either block legitimate work or leave a gap you thought you had closed.
+    return found
 
-Pair the preventive controls with AWS Config conformance packs for continuous detection and Security Hub to aggregate findings into one pane.
 
-The layered logic, stated plainly:
+def timestamp_ms(item: dict[str, Any]) -> int:
+    for key in ("lastPublishedAt", "lastModifiedAt", "createdAt"):
+        value = item.get(key)
+        if isinstance(value, (int, float)):
+            return int(value)
+    return 0
 
-| Layer | Tool | Failure mode it covers |
-|---|---|---|
-| Editor | Amazon Q Developer | Mistakes caught before they are committed |
-| Synth | cdk-nag | Insecure constructs and CDK-level patterns |
-| Pipeline | cfn-guard in CodePipeline | Raw overrides, imported and legacy templates |
-| Organisation | RCPs or SCPs | Console changes, compromised credentials, break-glass misuse |
-| Runtime | Config + Security Hub | Drift and anything that slips through the earlier layers |
 
-Any single layer can fail. All five failing simultaneously is a very different bet.
+def clean_text(value: str) -> str:
+    value = re.sub(r"<[^>]+>", " ", value)
+    value = re.sub(r"[#*_`>\[\]()]", "", value)
+    value = re.sub(r"\s+", " ", value).strip()
+    return value
 
----
 
-## Not a CDK shop? The pattern still works
+def clean_description(item: dict[str, Any]) -> str:
+    content_id = item.get("contentId", "")
+    if content_id in DESCRIPTION_OVERRIDES:
+        return DESCRIPTION_OVERRIDES[content_id]
 
-The tools change, but the architecture does not.
+    article = (item.get("contentTypeSpecificResponse") or {}).get("article") or {}
+    description = clean_text(str(article.get("description") or ""))
+    if not description:
+        description = clean_text(str(item.get("markdownDescription") or ""))
+    if len(description) > 220:
+        description = description[:217].rsplit(" ", 1)[0].rstrip(" ,;:") + "…"
+    return description
 
-For a Terraform estate, the equivalent path might be:
 
-- **Authoring:** editor diagnostics and AI-assisted review
-- **Static analysis:** TFLint, Checkov or tfsec
-- **Plan-time policy:** OPA/Conftest against `terraform plan`, or Sentinel in HCP Terraform
-- **Pipeline:** policy checks before apply
-- **Organisation:** RCPs or SCPs
-- **Runtime:** Config and Security Hub
+def article_title(item: dict[str, Any]) -> str:
+    return clean_text(str(item.get("title") or "Untitled article"))
 
-The principle is portable even when the syntax isn't: fast feedback close to the author, deterministic checks against the deployable artifact, preventive guardrails at the organisation boundary, and detective controls for drift.
 
-The same applies to mixed estates. A legacy CloudFormation account might skip the `cdk-nag` layer entirely but still use Guard in the pipeline, organisation policies as the floor, and Config for continuous detection. The point is not purity. The point is coverage.
+def article_date(item: dict[str, Any]) -> datetime:
+    return datetime.fromtimestamp(timestamp_ms(item) / 1000, UTC)
 
----
 
-## Design a real escape hatch
+def article_slug(item: dict[str, Any]) -> str:
+    """Stable local anchor id: the slug Builder Center itself uses in the URI."""
+    uri = str(item.get("uri") or "")
+    if "/" in uri.strip("/"):
+        slug = uri.rstrip("/").rsplit("/", 1)[-1]
+        if slug:
+            return slug
+    slug = re.sub(r"[^a-z0-9]+", "-", article_title(item).lower()).strip("-")
+    return slug or str(item.get("contentId") or "article").replace("/", "-")
 
-If you don't design an escape hatch, your developers will.
 
-There will be legitimate cases where a control needs to be bypassed: a temporary debugging stack in a sandbox, a proof of concept, a vendor integration with an unusual requirement. Pretending otherwise does not make your environment more secure. It just pushes the workaround out of sight.
+def external_url(item: dict[str, Any]) -> str:
+    uri = str(item.get("uri") or item.get("contentId") or "")
+    if uri.startswith("/"):
+        return BUILDER_ORIGIN + uri
+    return uri
 
-A good escape hatch is:
 
-- **Explicit:** The developer chooses a documented exception mechanism rather than disabling the check.
-- **Scoped:** It applies to one resource, stack, account or OU — not the whole organisation.
-- **Time-bound:** It expires or requires reapproval.
-- **Owned:** A person or team is accountable for it.
-- **Auditable:** Security can list every active exception without spelunking through build logs.
-- **Environment-aware:** Sandbox exceptions should not automatically inherit production privileges.
+def article_url(item: dict[str, Any], embedded: set[str]) -> str:
+    content_id = str(item.get("contentId") or "")
+    if content_id in LOCAL_ARTICLE_LINKS:
+        return LOCAL_ARTICLE_LINKS[content_id]
+    if content_id in embedded:
+        return "#" + article_slug(item)
+    return external_url(item)
 
-For example, a temporary sandbox exception might carry a tag such as `policy-exception: SEC-412:2026-12-01`, with the pipeline rejecting it outside approved sandbox accounts. The exact mechanism matters less than the properties: narrow, temporary, visible and owned.
 
----
+def article_type(item: dict[str, Any], position: int) -> str:
+    content_id = str(item.get("contentId") or "")
+    if content_id in ARTICLE_TYPE_OVERRIDES:
+        return ARTICLE_TYPE_OVERRIDES[content_id]
+    return "Article · New" if position == 0 else "Article"
 
-## Know what this costs
 
-The inner-loop controls are inexpensive. `cdk-nag` and CloudFormation Guard are open source, and the marginal cost is mostly developer time plus a few extra seconds or minutes in synthesis and CI.
+def render_card(item: dict[str, Any], position: int, embedded: set[str]) -> str:
+    title = html.escape(article_title(item))
+    description = html.escape(clean_description(item))
+    date = html.escape(article_date(item).strftime("%b %Y"))
+    kind = html.escape(article_type(item, position))
+    url = html.escape(article_url(item, embedded), quote=True)
+    external = url.startswith("https://")
+    target = ' target="_blank" rel="noopener noreferrer"' if external else ""
+    highlight = ' style="border-color: rgba(0, 212, 170, 0.45); box-shadow: 0 0 24px rgba(0, 212, 170, 0.08);"' if position == 0 else ""
 
-The cost profile changes as you move outward:
+    return f'''                <div class="talk-card"{highlight}>
+                    <div class="talk-type author">&#9679; {kind}</div>
+                    <h3 class="talk-title">{title}</h3>
+                    <div class="talk-venue">{description}</div>
+                    <div class="talk-meta">
+                        <span>{date}</span>
+                        <a href="{url}"{target} class="talk-link">Read &rarr;</a>
+                    </div>
+                </div>'''
 
-- **CodeBuild/CodePipeline:** build minutes and pipeline execution time
-- **Amazon Q Developer:** depends on the tier and licensing model
-- **AWS Config:** configuration items, rule evaluations and conformance packs
-- **Security Hub:** security checks and finding ingestion
-- **Operational overhead:** maintaining rule packs, triaging findings and reviewing exceptions
 
-That does not mean you should skip the outer layers. It means you should phase them deliberately. Start with the controls that remove the most risk per pound spent, then expand coverage as the organisation matures.
+def preprocess_markdown(markdown: str) -> str:
+    """Convert Builder Center's custom <Image /> tags into Markdown images."""
 
-The cheapest control is still the mistake that never reaches production. The most expensive one is the incident nobody detected until the bill, the auditor or the attacker found it first.
+    def image_sub(match: re.Match[str]) -> str:
+        attrs = match.group(1)
+        url_match = re.search(r'url="([^"]+)"', attrs)
+        title_match = re.search(r'title="([^"]*)"', attrs)
+        if not url_match:
+            return ""
+        alt = (title_match.group(1).strip() if title_match else "") or "Article image"
+        return f"\n\n![{alt}]({url_match.group(1)})\n\n"
 
----
+    return re.sub(r"<Image\s+([^>]*?)/>", image_sub, markdown)
 
-## Measure whether the road is actually faster
 
-"Security as code" sounds good in a slide deck. You need metrics to know whether it is working in reality.
+def markdown_to_html(markdown: str, id_prefix: str = "") -> str:
+    command = ["pandoc", "-f", "gfm", "-t", "html", "--wrap=none"]
+    if id_prefix:
+        command.append(f"--id-prefix={id_prefix}")
+    result = subprocess.run(
+        command,
+        input=markdown,
+        capture_output=True,
+        text=True,
+        timeout=60,
+    )
+    if result.returncode != 0:
+        raise RuntimeError(f"pandoc failed: {result.stderr.strip()[:400]}")
+    return result.stdout.strip()
 
-Track a small set of signals:
 
-- **Lead time from pull request to deployment**
-- **Time spent waiting for manual security review**
-- **Number of findings reaching production**
-- **Number and age of active exceptions**
-- **Percentage of repositories covered by each policy layer**
-- **Mean time to remediate a finding**
-- **False-positive or noisy-rule reports from developers**
-- **Policy-related build failures by rule and team**
+def toc_from_body(body_html: str) -> str:
+    headings = re.findall(r'<h([23]) id="([^"]+)">(.*?)</h\1>', body_html, re.DOTALL)
+    if not headings:
+        return ""
+    has_h2 = any(level == "2" for level, _, _ in headings)
+    links: list[str] = []
+    for level, anchor, text in headings:
+        text = re.sub(r"<[^>]+>", "", text).strip()
+        sub = ' class="toc-sub"' if has_h2 and level == "3" else ""
+        links.append(f'<a{sub} href="#{anchor}">{text}</a>')
+    return "\n".join(links)
 
-Do not optimise only for "number of blocked builds." A rule that blocks constantly may be finding real risk, but it may also be badly written, poorly documented or aimed at the wrong layer. The goal is not more red pipelines. The goal is fewer production findings without slowing delivery to a crawl.
 
-When the system is working, two things happen at once: security findings move left, and the total time to ship a compliant change goes down.
+def render_section(item: dict[str, Any], body_html: str) -> str:
+    slug = article_slug(item)
+    title = html.escape(article_title(item))
+    description = html.escape(clean_description(item))
+    date = html.escape(article_date(item).strftime("%b %Y"))
+    canonical = html.escape(external_url(item), quote=True)
+    toc = toc_from_body(body_html)
+    toc_block = ""
+    if toc:
+        toc_block = f'''<aside aria-label="Article contents" class="article-toc">
+<div class="toc-title">cat article.map</div>
+{toc}
+</aside>'''
 
----
+    return f'''<section id="{slug}" class="article-section" aria-labelledby="{slug}-title">
+<section class="article-hero">
+<div class="kicker">Published Intelligence · {date}</div>
+<h1 id="{slug}-title">{title}</h1>
+<p class="standfirst">{description}</p>
+<div aria-label="Article metadata" class="meta-panel">
+<div aria-hidden="true" class="meta-bar">
+<span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+<span class="meta-title">alam@builder-center:~/writing</span>
+</div>
+<div class="meta-body">
+<div class="meta-item">
+<div class="meta-label">Author</div>
+<div class="meta-value">Alam Ahmed</div>
+</div>
+<div class="meta-item">
+<div class="meta-label">Role</div>
+<div class="meta-value">AWS Community Builder</div>
+</div>
+<div class="meta-item">
+<div class="meta-label">Published</div>
+<div class="meta-value">{date}</div>
+</div>
+</div>
+</div>
+</section>
+<div class="article-layout">
+{toc_block}
+<article class="article-body">
+{body_html}
+<hr/>
+<p><em>Originally published on <a href="{canonical}">AWS Builder Center</a>. Any opinions are those of the individual author and may not reflect the opinions of AWS.</em></p>
+</article>
+</div>
+<footer class="article-footer">
+<a class="button" href="#writing">&larr; Back to writing</a>
+<a class="button" href="{canonical}" target="_blank" rel="noopener noreferrer">Discuss on Builder Center &rarr;</a>
+</footer>
+</section>'''
 
-## What I'd tell my past self
 
-I came to this from the NOC — from being the person paged when the ungoverned change went wrong. The lesson that took the longest to learn wasn't technical. It was this: developers don't route around security because they're careless. They route around it because the secure path is slower.
+def js_string(value: str) -> str:
+    return json.dumps(value, ensure_ascii=False)
 
-Every layer in this article shares one design goal: **the secure path must be the fastest path**. Ten-second feedback in the editor. A red pipeline in five minutes instead of a review in five days. Compliant patterns shipped as constructs and rule packs, so doing it right is literally less typing than doing it wrong.
 
-But speed alone is not enough. The road also needs maintenance: a migration plan for legacy findings, a shared policy catalogue so the layers do not drift apart, time-bound exceptions, and metrics that tell you whether the whole thing is helping or just generating noise.
+def terminal_title(title: str, maximum: int = 68) -> str:
+    return title if len(title) <= maximum else title[: maximum - 1].rsplit(" ", 1)[0] + "…"
 
-That's what DevTools advocacy means to me in 2026: not more gates, better roads — and a maintenance crew for the roads we build.
 
-The AWS toolchain — Q Developer, CDK, `cdk-nag`, Guard, CodePipeline, RCPs, SCPs, Config and Security Hub — finally gives us the materials. The only thing left is to pave it, measure it, and keep it clear.
+def render_terminal_lines(articles: list[dict[str, Any]]) -> str:
+    lines: list[str] = []
+    for position, item in enumerate(articles):
+        date = article_date(item).strftime("%b %y")
+        title = html.escape(terminal_title(article_title(item)), quote=False)
+        badge = ""
+        content_id = str(item.get("contentId") or "")
+        if position == 0:
+            badge = ' <span class="ok">New</span>'
+        elif content_id == "/content/3ElShp5DBoeQCRfc5kaBhwsruIe":
+            badge = ' <span class="wrn">&#11088; Spotlight pick</span>'
+        lines.append(f'  <span class="inf">{date}</span> {title}{badge}')
+    return "\n".join("                " + js_string(line) + "," for line in lines)
 
----
 
-*Any opinions in this article are those of the individual author and may not reflect the opinions of AWS.*
+def replace_marked(source: str, start: str, end: str, body: str, closing_indent: str) -> str:
+    pattern = re.compile(re.escape(start) + r".*?" + re.escape(end), re.DOTALL)
+    replacement = start + "\n" + body + "\n" + closing_indent + end
+    updated, count = pattern.subn(replacement, source, count=1)
+    if count != 1:
+        raise RuntimeError(f"Could not find marker pair: {start} ... {end}")
+    return updated
+
+
+def build_sections(articles: list[dict[str, Any]]) -> tuple[str, set[str]]:
+    """Fetch and render full article bodies. Returns (sections_html, embedded_ids).
+
+    If a body cannot be fetched or rendered, that article is skipped: its card
+    falls back to linking to Builder Center instead of a local section.
+    """
+    sections: list[str] = []
+    embedded: set[str] = set()
+    for item in articles:
+        content_id = str(item.get("contentId") or "")
+        if not content_id or content_id in LOCAL_ARTICLE_LINKS:
+            if content_id in LOCAL_ARTICLE_LINKS:
+                embedded.add(content_id)
+            continue
+        try:
+            full = fetch_full_article(content_id)
+            markdown = str(full.get("markdownDescription") or "")
+            if len(markdown) < 200:
+                raise RuntimeError("article body looks empty")
+            # Prefix every generated id with the content id tail so pandoc's
+            # per-document anchors (cb1, cb2, ...) can never collide across
+            # embedded articles on the same page.
+            id_prefix = "x" + re.sub(r"[^A-Za-z0-9]", "", content_id)[-6:] + "-"
+            body_html = markdown_to_html(preprocess_markdown(markdown), id_prefix)
+        except Exception as exc:  # noqa: BLE001 - degrade to external link
+            print(f"warning: could not embed {content_id}: {exc}", file=sys.stderr)
+            continue
+        sections.append(render_section(item, body_html))
+        embedded.add(content_id)
+    return "\n".join(sections), embedded
+
+
+def update_index(articles: list[dict[str, Any]], dry_run: bool = False) -> bool:
+    source = INDEX.read_text()
+
+    sections_html, embedded = build_sections(articles)
+    cards = "\n".join(render_card(item, position, embedded) for position, item in enumerate(articles))
+    latest = articles[0]
+    latest_line = f'<span class="inf">Article:</span> {html.escape(article_title(latest), quote=False)} ({article_date(latest).strftime("%b %Y")})'
+
+    updated = replace_marked(source, CARD_START, CARD_END, cards, "                ")
+    updated = replace_marked(updated, LATEST_START, LATEST_END, "                " + js_string(latest_line) + ",", "                ")
+    updated = replace_marked(updated, TERMINAL_START, TERMINAL_END, render_terminal_lines(articles), "                ")
+    if BODY_START in updated:
+        updated = replace_marked(updated, BODY_START, BODY_END, sections_html, "")
+
+    if dry_run:
+        print(updated[updated.index(CARD_START):updated.index(CARD_END) + len(CARD_END)])
+        return updated != source
+
+    if updated != source:
+        INDEX.write_text(updated)
+        rendered = sections_html.count('<section id=')
+        print(f"Updated {len(articles)} Builder Center article cards and {rendered} embedded article sections in {INDEX}")
+    else:
+        print("Builder Center article cards already up to date")
+    return updated != source
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--dry-run", action="store_true", help="print the generated cards without editing index.html")
+    parser.add_argument("--max-articles", type=int, default=DEFAULT_MAX_ARTICLES, help="number of latest articles to render")
+    args = parser.parse_args()
+
+    found: dict[str, dict[str, Any]] = {}
+    for query in (AUTHOR_ALIAS, AUTHOR_NAME):
+        found.update(search_author(query))
+
+    articles = sorted(found.values(), key=timestamp_ms, reverse=True)[: args.max_articles]
+    if not articles:
+        print("No Builder Center articles matched the configured author identity", file=sys.stderr)
+        return 1
+
+    update_index(articles, dry_run=args.dry_run)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
