@@ -1,0 +1,135 @@
+<p>A few months ago I pasted a Kiro-generated Terraform module into our staging environment. It was clean HCL, well-structured, followed our steering file conventions. Then it tried to create an S3 bucket with public-read ACLs and a Lambda execution role sporting <code>AdministratorAccess</code>.</p>
+<p>The SCP caught the S3 violation immediately. The IAM policy slipped through during a window when our RCP propagation was still syncing. Nothing broke — we had canary deployments enabled — but it was a wake-up call.</p>
+<p>When AI writes your infrastructure, "shift-left" isn't enough. You need guardrails that understand <em>intent</em>, not just <em>syntax</em>. And you need delivery mechanisms that treat every AI-generated change as potentially hostile until proven otherwise.</p>
+<p>This is how we combined four ideas — spec-driven AI development, runtime condition contracts, progressive delivery with policy guardrails, and Lambda MicroVMs — into something that actually works at scale.</p>
+<h2 id="xIRin0A-the-problem-ai-agents-dont-understand-context">The Problem: AI Agents Don't Understand Context</h2>
+<p>Kiro is impressive. Give it a requirements document in EARS notation, and it'll generate a design doc, task breakdown, and implementation that mostly compiles. For application code, this is transformative. For infrastructure, it's dangerous — because the agent doesn't know your VPC topology, your compliance boundaries, or which data stores are allowed to talk to which compute.</p>
+<p>The traditional answer is post-generation linting: run <code>checkov</code>, <code>tfsec</code>, or <code>tflint</code> against the output. But that's like checking a car's brakes after it's already on the motorway. By the time the scan fails, the developer has mentally committed to the solution. The friction is in the wrong place.</p>
+<p>What we needed was a way to tell the agent <em>upfront</em> what the runtime environment looks like — not as comments in a steering file, but as a machine-readable contract the agent must satisfy before it generates a single line of HCL.</p>
+<p>Runtime Conditions as the Contract Layer A friend of mine Colin Lacy, has been working on something called <a href="https://colinjlacy.github.io/runtime-conditions-profiles/">Runtime Conditions Profiles</a> — a way for workloads to declare their external dependencies abstractly. The workload says "I need a key-value cache, preferably Redis," not "here's the connection string to redis-prod-01.internal." A platform adapter fulfills that contract based on environment, policy, and availability.</p>
+<p>We borrowed that idea and applied it to Kiro's spec phase.</p>
+<p>Instead of letting Kiro guess what resources a workload needs, we feed it a Runtime Conditions Profile as part of the requirements input. The profile declares:</p>
+<ul>
+<li><strong>What integrations are needed</strong> (DynamoDB table, SNS topic, S3 bucket with object lock)</li>
+<li><strong>What interfaces they must satisfy</strong> (encryption at rest, VPC-scoped access, specific IAM action boundaries)</li>
+<li><strong>What configuration shape the workload expects</strong> (env var names, not values)</li>
+</ul>
+<p>Kiro then generates Terraform that <em>references</em> these conditions rather than hardcoding resources. The agent doesn't create a DynamoDB table — it creates a <code>data</code> source lookup against a table that the platform adapter has already validated and provisioned.</p>
+<p>Here's what that looks like in practice. Our platform adapter emits a profile snippet like this:</p>
+<div class="sourceCode" id="xIRin0A-cb1"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="xIRin0A-cb1-1"><a href="#xIRin0A-cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">conditions</span><span class="kw">:</span></span>
+<span id="xIRin0A-cb1-2"><a href="#xIRin0A-cb1-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="kw">-</span><span class="at"> </span><span class="fu">name</span><span class="kw">:</span><span class="at"> audit-log-store</span></span>
+<span id="xIRin0A-cb1-3"><a href="#xIRin0A-cb1-3" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">kind</span><span class="kw">:</span><span class="at"> database</span></span>
+<span id="xIRin0A-cb1-4"><a href="#xIRin0A-cb1-4" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">interface</span><span class="kw">:</span></span>
+<span id="xIRin0A-cb1-5"><a href="#xIRin0A-cb1-5" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">type</span><span class="kw">:</span><span class="at"> document</span></span>
+<span id="xIRin0A-cb1-6"><a href="#xIRin0A-cb1-6" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">engine</span><span class="kw">:</span><span class="at"> dynamodb</span></span>
+<span id="xIRin0A-cb1-7"><a href="#xIRin0A-cb1-7" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">spec</span><span class="kw">:</span></span>
+<span id="xIRin0A-cb1-8"><a href="#xIRin0A-cb1-8" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">encryption</span><span class="kw">:</span><span class="at"> aws_managed</span></span>
+<span id="xIRin0A-cb1-9"><a href="#xIRin0A-cb1-9" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">point_in_time_recovery</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="xIRin0A-cb1-10"><a href="#xIRin0A-cb1-10" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">deletion_protection</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="xIRin0A-cb1-11"><a href="#xIRin0A-cb1-11" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">configuration</span><span class="kw">:</span></span>
+<span id="xIRin0A-cb1-12"><a href="#xIRin0A-cb1-12" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">env</span><span class="kw">:</span></span>
+<span id="xIRin0A-cb1-13"><a href="#xIRin0A-cb1-13" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="kw">-</span><span class="at"> </span><span class="fu">property</span><span class="kw">:</span><span class="at"> table_name</span></span>
+<span id="xIRin0A-cb1-14"><a href="#xIRin0A-cb1-14" aria-hidden="true" tabindex="-1"></a><span class="at">          </span><span class="fu">name</span><span class="kw">:</span><span class="at"> AUDIT_LOG_TABLE</span></span>
+<span id="xIRin0A-cb1-15"><a href="#xIRin0A-cb1-15" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">iam</span><span class="kw">:</span></span>
+<span id="xIRin0A-cb1-16"><a href="#xIRin0A-cb1-16" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">actions</span><span class="kw">:</span></span>
+<span id="xIRin0A-cb1-17"><a href="#xIRin0A-cb1-17" aria-hidden="true" tabindex="-1"></a><span class="at">          </span><span class="kw">-</span><span class="at"> dynamodb:PutItem</span></span>
+<span id="xIRin0A-cb1-18"><a href="#xIRin0A-cb1-18" aria-hidden="true" tabindex="-1"></a><span class="at">          </span><span class="kw">-</span><span class="at"> dynamodb:Query</span></span>
+<span id="xIRin0A-cb1-19"><a href="#xIRin0A-cb1-19" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">resources</span><span class="kw">:</span></span>
+<span id="xIRin0A-cb1-20"><a href="#xIRin0A-cb1-20" aria-hidden="true" tabindex="-1"></a><span class="at">          </span><span class="kw">-</span><span class="at"> </span><span class="st">&quot;arn:aws:dynamodb:*:*:table/audit-log-*&quot;</span></span></code></pre></div>
+<p>Kiro sees this and generates Terraform that:</p>
+<ol type="1">
+<li>Looks up the existing table via <code>aws_dynamodb_table</code> data source</li>
+<li>Creates an IAM policy with <em>only</em> the listed actions</li>
+<li>Injects <code>AUDIT_LOG_TABLE</code> as an environment variable</li>
+<li>Never attempts to create or modify the table itself</li>
+</ol>
+<p>The agent can't over-provision because the contract doesn't give it permission to. It can't under-secure because the interface spec mandates encryption and recovery. And it can't hardcode ARNs because the profile only provides env var names, not values.</p>
+<hr />
+<h2 id="xIRin0A-but-contracts-can-be-broken">But Contracts Can Be Broken</h2>
+<p>Here's the thing about AI agents: they're non-deterministic. Feed the same requirements to Kiro twice, and you might get two different implementations. One follows the contract. One "optimises" by inlining a resource creation it thinks is more efficient. Both pass <code>terraform validate</code>. Only one passes policy.</p>
+<p>We learned this the hard way when an agent-generated module created a secondary IAM role with <code>sts:AssumeRole</code> to a principal outside our organisation. The SCP blocked it — eventually. But SCP propagation isn't instant, and during that window, the role existed in a partial state that confused our monitoring.</p>
+<p>That incident taught us that Runtime Conditions Profiles handle <em>intent</em>, but we still need <em>enforcement</em> at multiple layers. And enforcement needs to be as progressive as the delivery itself.</p>
+<hr />
+<h2 id="xIRin0A-enter-lambda-microvms-the-isolated-canary-cage">Enter Lambda MicroVMs: The Isolated Canary Cage</h2>
+<p>In June 2026, AWS launched <a href="https://aws.amazon.com/lambda/lambda-microvms/">Lambda MicroVMs</a> in preview — a new serverless compute primitive that gives you VM-level isolated sandboxes with no shared kernel or resources between sessions. Rapid launch and resume, full lifecycle control, state preservation up to 8 hours, and zero infrastructure to manage.</p>
+<p>At first glance, this looks like a tool for interactive notebooks or sandboxed code execution. For us, it solved a completely different problem: <strong>how do you safely run a live canary of AI-generated infrastructure when you don't trust the code enough to put it in your VPC?</strong></p>
+<p>Our old live canary deployed to a single AZ in production, scoped to synthetic traffic. That worked for application changes, but infrastructure changes are different. A misconfigured security group or IAM policy doesn't just fail — it opens holes. Running that in a production-adjacent environment still felt too close to the edge.</p>
+<p>Lambda MicroVMs changed the calculus. Each canary now runs inside its own MicroVM — kernel-isolated from everything else, with no shared state between sessions. If the agent-generated Terraform creates a rogue IAM policy or exposes an unintended endpoint, the blast radius is contained to that single MicroVM. We can pause it, inspect its state, and decide whether to resume or destroy — all through the lifecycle API.</p>
+<p>The 8-hour state preservation is the feature we didn't know we needed. Our old canaries ran for 30 minutes. That's enough for synthetic traffic but misses slower-burn issues — IAM policy eventual consistency drift, CloudWatch metric lag, or cost anomalies that only show up after an hour. With MicroVMs, we run canaries for 4-6 hours, preserving full state throughout. If something looks off at hour three, we snapshot the MicroVM state, attach it to our incident response pipeline, and investigate without losing context.</p>
+<hr />
+<h2 id="xIRin0A-progressive-policy-the-four-stage-pipeline">Progressive Policy: The Four-Stage Pipeline</h2>
+<p>You can't "canary" a VPC. You can, however, canary the <em>deployment</em> of infrastructure changes — and now you can do it inside an isolated sandbox.</p>
+<p>Our updated pipeline looks like this:</p>
+<h3 id="xIRin0A-stage-1-spec-validation-pre-generation">Stage 1: Spec Validation (Pre-Generation)</h3>
+<p>Before Kiro generates anything, we validate the Runtime Conditions Profile against our platform registry. The registry knows:</p>
+<ul>
+<li>Which DynamoDB tables exist in which accounts</li>
+<li>Which IAM action boundaries apply to which workload types</li>
+<li>Which VPC endpoints are available for private access</li>
+</ul>
+<p>If the profile requests a condition the registry can't satisfy — say, a Redis cluster in an account that only has ElastiCache Serverless — the pipeline fails before generation starts. No wasted compute, no false hope.</p>
+<h3 id="xIRin0A-stage-2-static-guardrailing-post-generation-pre-plan">Stage 2: Static Guardrailing (Post-Generation, Pre-Plan)</h3>
+<p>Kiro outputs Terraform. We run a custom policy engine that does three things:</p>
+<ol type="1">
+<li><strong>Resource boundary check</strong>: Does the plan create anything outside the profile's declared conditions? An unexpected <code>aws_iam_role</code> is an automatic fail.</li>
+<li><strong>Permission scope check</strong>: Do IAM policies exceed the actions listed in the profile? We parse the JSON policy and compare against the condition's <code>iam.actions</code> list.</li>
+<li><strong>Network topology check</strong>: Does any resource expose a public endpoint when the profile specifies VPC-scoped access?</li>
+</ol>
+<p>These aren't generic rules. They're generated <em>from the profile itself</em>, so they're tailored to each workload. A Lambda that only needs DynamoDB read access gets a different guardrail set than one that needs S3 write + KMS decrypt.</p>
+<h3 id="xIRin0A-stage-3-shadow-apply-pre-production">Stage 3: Shadow Apply (Pre-Production)</h3>
+<p>Terraform plan is executed against a mirror environment that replicates production's SCP and RCP boundaries but uses stub resources. This catches policy violations that static analysis misses — like the SCP propagation delay I mentioned earlier. The shadow environment has artificially delayed SCP sync (we inject a 5-minute lag) to simulate worst-case propagation.</p>
+<p>If shadow apply fails, the pipeline stops. The developer gets a Kiro-readable error trace that the agent can use to regenerate the fix.</p>
+<h3 id="xIRin0A-stage-4-microvm-live-canary-isolated-production-validation">Stage 4: MicroVM Live Canary (Isolated Production Validation)</h3>
+<p>Here's where Lambda MicroVMs come in. Instead of deploying to a single AZ in our production VPC, we spin up a dedicated MicroVM with:</p>
+<ul>
+<li>A copy of the agent-generated Terraform</li>
+<li>Read-only access to a sandbox AWS account with production-equivalent SCPs</li>
+<li>Synthetic traffic generators that mimic real workload patterns</li>
+<li>CloudWatch agent, GuardDuty detector, and IAM Access Analyzer enabled</li>
+</ul>
+<p>The MicroVM runs for up to 4 hours (we've found that's the sweet spot). During that window:</p>
+<ul>
+<li>CloudWatch Synthetics canaries validate infrastructure health</li>
+<li>GuardDuty watches for anomalous API calls</li>
+<li>IAM Access Analyzer alerts on unexpected cross-account access</li>
+<li>Cost anomaly detection flags oversized resources (AI agents love creating xlarge instances)</li>
+<li>Our custom policy engine continuously evaluates the running state against the Runtime Conditions Profile</li>
+</ul>
+<p>If any signal turns red, we pause the MicroVM — preserving its full state — and trigger automatic rollback. The incident data, including the MicroVM snapshot, feeds back into Kiro's steering files as a negative example.</p>
+<p>If all signals stay green for the full window, we destroy the MicroVM and promote the Terraform to production deployment via CodeDeploy.</p>
+<hr />
+<h2 id="xIRin0A-the-scp-of-ai-when-guardrails-become-the-architecture">The SCP of AI: When Guardrails Become the Architecture</h2>
+<p>In my previous articles I wrote about the gap between "attached" and "enforced." With AI-generated infrastructure, that gap is existential. An agent can generate and apply a non-compliant resource faster than SCPs can propagate to deny it.</p>
+<p>Lambda MicroVMs don't fix SCP propagation. What they do is give us a <strong>contained environment where propagation delay doesn't matter</strong> — because the MicroVM is isolated from production resources by design. Even if an SCP hasn't propagated yet, the MicroVM can't touch production. It's a sandbox by architecture, not just by policy.</p>
+<p>But — and this is critical — <strong>isolation is not governance</strong>. A MicroVM isolates the execution environment. It does not govern what the code inside does. An AI agent running inside a MicroVM can still create resources in the sandbox account, exfiltrate data to an external endpoint, or spin up expensive instances that burn budget. The isolation contains the blast radius, but the guardrails still need to enforce the rules.</p>
+<p>That's why our five-layer stack now looks like this:</p>
+<pre class="plaintext"><code>Layer       Mechanism                                   What It Blocks
+Spec      Runtime Conditions Profile                Invalid intent before generation
+Static     Policy engine (profile-derived)         Non-compliant HCL before plan
+Shadow     Mirrored SCP/RCP environment          Propagat ion-delayed violations
+Live       Lambda MicroVM with synthetic traffic       Runtime misbehaviour in isolation
+Organisational  SCPs + RCPs + IAM Access Analyzer   Persistent policy violations</code></pre>
+<p>The insight is that SCPs are your <em>last</em> line of defence, not your first. If an AI agent is hitting SCP denials regularly, your earlier layers are broken. We track "SCP block rate" as a platform health metric. A spike means our spec validation, static guardrailing, or MicroVM canary has a gap.</p>
+<p>We also use Resource Control Policies (RCPs) — the newer sibling to SCPs — to enforce data perimeter rules. Where SCPs control <em>who</em> can do <em>what</em>, RCPs control <em>which</em> resources can be accessed <em>from where</em>. This is critical for AI-generated code because agents don't understand your network topology. An RCP that denies S3 access from outside a specific VPC endpoint doesn't care whether the access came from a human or an agent. It just works.</p>
+<hr />
+<h2 id="xIRin0A-what-we-learned-so-far">What We Learned (So Far)</h2>
+<p><strong>AI-generated infrastructure is not "infrastructure with AI assistance."</strong> It's a different paradigm that requires different controls. You wouldn't let a junior engineer deploy to production without code review. Don't let an AI agent deploy without equivalent — or stronger — guardrails.</p>
+<p><strong>Runtime Conditions Profiles changed how we think about platform contracts.</strong> By making dependencies explicit and machine-readable, we shifted the conversation from "did the agent write good Terraform?" to "did the agent satisfy the platform contract?" The second question is much easier to answer automatically.</p>
+<p><strong>Progressive delivery applies to infrastructure, not just apps.</strong> The shadow apply + MicroVM canary pattern has caught issues that static analysis never would — particularly around IAM policy eventual consistency, SCP propagation windows, and runtime cost anomalies. If you're running AI agents in production, you need this.</p>
+<p><strong>Lambda MicroVMs are the missing piece for untrusted code validation.</strong> The VM-level isolation means we can run canaries longer, with more realistic traffic, without risking production. The 8-hour state preservation lets us investigate issues that only surface after hours, not minutes. And the lifecycle API means we can pause, inspect, and resume — treating each canary as a forensic artifact, not just a pass/fail gate.</p>
+<p><strong>Kiro's steering files are necessary but not sufficient.</strong> They guide the agent's style and conventions, but they don't enforce runtime constraints. Combining steering files with Runtime Conditions Profiles and MicroVM isolation gives you <em>how</em> the code looks, <em>what</em> it can touch, and <em>where</em> it can run.</p>
+<hr />
+<h2 id="xIRin0A-a-practical-starting-point">A Practical Starting Point</h2>
+<p>If you're looking to implement something similar, here's the minimal viable setup I'd recommend:</p>
+<ol type="1">
+<li><strong>Define one Runtime Conditions Profile</strong> for a standard workload type (e.g., "internal API with DynamoDB backend"). Keep it narrow.</li>
+<li><strong>Integrate it into Kiro's requirements phase</strong> as a structured input, not a comment.</li>
+<li><strong>Build a static policy engine</strong> that parses the generated Terraform and validates against the profile's <code>conditions</code> list. Start with resource boundary checks — they're the highest ROI.</li>
+<li><strong>Add a shadow apply stage</strong> in your CI pipeline using a mirrored account with production-equivalent SCPs. Inject artificial delay if your org's propagation is fast.</li>
+<li><strong>Spin up a Lambda MicroVM</strong> for live canary validation. Start with 1-hour runs and scale up as you build confidence. Use the lifecycle API to pause and inspect any failures.</li>
+<li><strong>Track SCP block rate</strong> as a metric. If it's above zero, your earlier layers need work.</li>
+</ol>
+<p>This isn't theoretical. We've been running this in production for three months across a dozen services. The agent-generated code isn't perfect — it still needs human review for architectural decisions — but it no longer scares us.</p>
+<p>And honestly? That's the bar. AI-generated infrastructure shouldn't be exciting. It should be boring, predictable, and heavily guarded. The canary sings, but only after the guards have checked its credentials — and only from inside its cage.</p>
+<hr/>
+<p><em>Originally published on <a href="https://builder.aws.com/content/3FuJq2YhQh31l3A3FOxBwIRin0A/the-guarded-canary-how-to-safely-ship-ai-generated-infrastructure-on-aws">AWS Builder Center</a>. Any opinions are those of the individual author and may not reflect the opinions of AWS.</em></p>
