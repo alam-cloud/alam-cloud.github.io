@@ -1550,6 +1550,254 @@
         .article-section .article-layout { padding-bottom: 2rem; }
         .article-section .article-footer { margin-bottom: 0; }
     </style>
+    <style>
+        /* ============ Slide Decks ============ */
+        .decks-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+            gap: 1.75rem;
+        }
+        .deck-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            transition: all 0.3s;
+            display: flex;
+            flex-direction: column;
+        }
+        .deck-card:hover {
+            border-color: var(--accent-success);
+            transform: translateY(-4px);
+            box-shadow: 0 12px 44px rgba(0,0,0,0.45), 0 0 22px var(--glow-success);
+        }
+        .deck-cover {
+            position: relative;
+            aspect-ratio: 16 / 9;
+            overflow: hidden;
+            cursor: pointer;
+            border: none;
+            padding: 0;
+            background: var(--bg-secondary);
+            display: block;
+            width: 100%;
+        }
+        .deck-cover img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            transition: transform 0.4s ease, filter 0.4s ease;
+        }
+        .deck-card:hover .deck-cover img { transform: scale(1.04); }
+        .deck-cover::after {
+            content: '▶ present';
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--accent-success);
+            background: rgba(5, 8, 15, 0.55);
+            backdrop-filter: blur(2px);
+            opacity: 0;
+            transition: opacity 0.3s;
+            letter-spacing: 1px;
+        }
+        .deck-cover:hover::after, .deck-cover:focus-visible::after { opacity: 1; }
+        .deck-count-badge {
+            position: absolute;
+            top: 0.7rem; right: 0.7rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.68rem;
+            letter-spacing: 1px;
+            color: var(--bg-primary);
+            background: var(--accent-success);
+            border-radius: 4px;
+            padding: 0.2rem 0.55rem;
+            font-weight: 700;
+            z-index: 1;
+        }
+        .deck-body { padding: 1.25rem 1.35rem 1.35rem; display: flex; flex-direction: column; flex: 1; }
+        .deck-body .talk-type { margin-bottom: 0.6rem; }
+        .deck-body h3 { font-size: 1.02rem; font-weight: 600; margin-bottom: 0.4rem; line-height: 1.4; }
+        .deck-venue { color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 0.9rem; }
+        .deck-actions {
+            margin-top: auto;
+            display: flex;
+            gap: 0.6rem;
+            flex-wrap: wrap;
+        }
+        .deck-btn {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.78rem;
+            font-weight: 600;
+            padding: 0.5rem 0.95rem;
+            border-radius: 6px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            transition: all 0.25s;
+            border: 1px solid var(--border);
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+        .deck-btn.primary {
+            background: var(--accent-success);
+            border-color: var(--accent-success);
+            color: var(--bg-primary);
+        }
+        .deck-btn.primary:hover { box-shadow: 0 0 18px var(--glow-success); transform: translateY(-1px); }
+        .deck-btn:not(.primary):hover { border-color: var(--accent-info); color: var(--accent-info); box-shadow: 0 0 14px var(--glow-info); }
+
+        /* ============ Deck Viewer (fullscreen overlay) ============ */
+        #deck-viewer {
+            position: fixed;
+            inset: 0;
+            z-index: 10000;
+            background: rgba(3, 6, 12, 0.97);
+            display: none;
+            flex-direction: column;
+            opacity: 0;
+            transition: opacity 0.25s ease;
+        }
+        #deck-viewer.open { display: flex; }
+        #deck-viewer.visible { opacity: 1; }
+        .dv-titlebar {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            padding: 0.7rem 1.1rem;
+            border-bottom: 1px solid var(--border);
+            background: var(--bg-secondary);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            flex-shrink: 0;
+        }
+        .dv-titlebar .terminal-btn { cursor: pointer; }
+        .dv-title {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            flex: 1;
+            min-width: 0;
+        }
+        .dv-title .dv-cmd { color: var(--accent-success); }
+        .dv-counter {
+            color: var(--accent-info);
+            font-weight: 700;
+            white-space: nowrap;
+        }
+        .dv-btn {
+            background: none;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-secondary);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            padding: 0.3rem 0.65rem;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+        .dv-btn:hover { border-color: var(--accent-success); color: var(--accent-success); }
+        .dv-stage {
+            flex: 1;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 0;
+            padding: 1rem;
+        }
+        .dv-slide {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            border-radius: 6px;
+            box-shadow: 0 20px 70px rgba(0,0,0,0.6);
+            user-select: none;
+            -webkit-user-drag: none;
+        }
+        .dv-nav {
+            position: absolute;
+            top: 0; bottom: 0;
+            width: 18%;
+            min-width: 64px;
+            border: none;
+            background: transparent;
+            color: var(--accent-success);
+            font-size: 2rem;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.25s;
+            font-family: 'JetBrains Mono', monospace;
+            z-index: 2;
+        }
+        .dv-stage:hover .dv-nav, .dv-nav:focus-visible { opacity: 0.9; }
+        .dv-nav:hover { text-shadow: 0 0 18px var(--glow-success); }
+        .dv-nav.prev { left: 0; }
+        .dv-nav.next { right: 0; }
+        .dv-nav[disabled] { opacity: 0 !important; cursor: default; }
+        .dv-footer {
+            flex-shrink: 0;
+            border-top: 1px solid var(--border);
+            background: var(--bg-secondary);
+            padding: 0.55rem 1.1rem 0.7rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+        }
+        .dv-progress {
+            height: 3px;
+            background: var(--bg-primary);
+            border-radius: 2px;
+            overflow: hidden;
+            margin-bottom: 0.5rem;
+        }
+        .dv-progress-fill {
+            height: 100%;
+            width: 0;
+            background: linear-gradient(90deg, var(--accent-success), var(--accent-info));
+            box-shadow: 0 0 8px var(--glow-success);
+            transition: width 0.25s ease;
+        }
+        .dv-hints { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+        .dv-hints kbd {
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 0 0.35rem;
+            font-family: inherit;
+            color: var(--accent-warn);
+        }
+        @media (max-width: 640px) {
+            .decks-grid { grid-template-columns: 1fr; }
+            .dv-hints .dv-hint-keys { display: none; }
+            .dv-titlebar { font-size: 0.68rem; }
+        }
+        @media print {
+            #deck-viewer, #decks { display: none !important; }
+        }
+        .talk-slides-btn {
+            background: none;
+            border: none;
+            padding: 0;
+            font: inherit;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            cursor: pointer;
+        }
+    </style>
 </head>
 <body id="top">
 
@@ -1571,6 +1819,7 @@
                 <li><a href="#experience" data-spy="experience">/experience</a></li>
                 <li><a href="#videos" data-spy="videos">/videos</a></li>
                 <li><a href="#talks" data-spy="talks">/talks</a></li>
+                <li><a href="#decks" data-spy="decks">/decks</a></li>
                 <li><a href="#writing" data-spy="writing">/writing</a></li>
                 <li><a href="#projects" data-spy="projects">/projects</a></li>
                 <li><a href="#skills" data-spy="skills">/skills</a></li>
@@ -1845,6 +2094,7 @@
                         <div class="talk-type speaker">&#9679; AWS London WAUG</div>
                         <h3>Terraforming the Well-Architected Way</h3>
                         <p>AWS Head Office, London — 33 attendees</p>
+                        <p style="margin-top: 0.6rem;"><button type="button" class="talk-link talk-slides-btn" data-deck="terraforming-the-well-architected-way">&#9654; Browse the 15 slides &rarr;</button></p>
                     </div>
                 </div>
                 <div class="video-card">
@@ -1855,6 +2105,7 @@
                         <div class="talk-type speaker">&#9679; Cloud Native London</div>
                         <h3>eBPF: Revolutionizing Cloud-Native Security</h3>
                         <p>London — 50 attendees</p>
+                        <p style="margin-top: 0.6rem;"><button type="button" class="talk-link talk-slides-btn" data-deck="ebpf-cloud-native-security">&#9654; Browse the 32 slides &rarr;</button></p>
                     </div>
                 </div>
                 <div class="video-card">
@@ -1894,7 +2145,11 @@
                     <div class="talk-venue">AWS London Well-Architected User Group — AWS Head Office (33 attendees)</div>
                     <div class="talk-meta">
                         <span>Jul 2026</span>
-                        <a href="https://youtu.be/QUyqRie6-tU" target="_blank" rel="noopener noreferrer" class="talk-link">Watch &rarr;</a>
+                        <span>
+                            <button type="button" class="talk-link talk-slides-btn" data-deck="terraforming-the-well-architected-way">Slides &rarr;</button>
+                            &nbsp;·&nbsp;
+                            <a href="https://youtu.be/QUyqRie6-tU" target="_blank" rel="noopener noreferrer" class="talk-link">Watch &rarr;</a>
+                        </span>
                     </div>
                 </div>
                 <div class="talk-card">
@@ -1903,7 +2158,7 @@
                     <div class="talk-venue">London DevOps Meetup</div>
                     <div class="talk-meta">
                         <span>Mar 2026</span>
-                        <span style="opacity: 0.5;">Recording pending</span>
+                        <button type="button" class="talk-link talk-slides-btn" data-deck="shifting-security-left">Slides &rarr;</button>
                     </div>
                 </div>
                 <div class="talk-card">
@@ -1912,7 +2167,11 @@
                     <div class="talk-venue">Cloud Native London — 50 attendees</div>
                     <div class="talk-meta">
                         <span>Feb 2026</span>
-                        <a href="https://youtu.be/IzayRY93z88" target="_blank" rel="noopener noreferrer" class="talk-link">Watch &rarr;</a>
+                        <span>
+                            <button type="button" class="talk-link talk-slides-btn" data-deck="ebpf-cloud-native-security">Slides &rarr;</button>
+                            &nbsp;·&nbsp;
+                            <a href="https://youtu.be/IzayRY93z88" target="_blank" rel="noopener noreferrer" class="talk-link">Watch &rarr;</a>
+                        </span>
                     </div>
                 </div>
                 <div class="talk-card">
@@ -1930,7 +2189,86 @@
                     <div class="talk-venue">Elastic London — 18 attendees</div>
                     <div class="talk-meta">
                         <span>Sep 2025</span>
-                        <a href="https://github.com/InfraPlatformer/elastic-terraform-demo" target="_blank" rel="noopener noreferrer" class="talk-link">Repo &rarr;</a>
+                        <span>
+                            <button type="button" class="talk-link talk-slides-btn" data-deck="elasticsearch-terraform">Slides &rarr;</button>
+                            &nbsp;·&nbsp;
+                            <a href="https://github.com/InfraPlatformer/elastic-terraform-demo" target="_blank" rel="noopener noreferrer" class="talk-link">Repo &rarr;</a>
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="decks" class="section-alt">
+        <div class="container">
+            <div class="section-header">
+                <div class="section-tag">Slide Artifacts</div>
+                <h2 class="section-title">Talk <span class="gradient-text">Decks</span></h2>
+                <p class="section-desc">The actual slides from my talks — flip through them right here (<span style="font-family: 'JetBrains Mono', monospace; font-size: 0.85rem;">←</span>/<span style="font-family: 'JetBrains Mono', monospace; font-size: 0.85rem;">→</span> to navigate, <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.85rem;">F</span> for fullscreen), or grab the PDF. 4 decks · 81 slides · zero “sorry, you had to be there.”</p>
+            </div>
+            <div class="decks-grid">
+                <div class="deck-card">
+                    <button type="button" class="deck-cover" data-deck="terraforming-the-well-architected-way" aria-label="Present slides: Terraforming the Well-Architected Way">
+                        <span class="deck-count-badge">15 SLIDES</span>
+                        <img src="decks/terraforming-the-well-architected-way/cover.jpg" alt="Title slide of Terraforming the Well-Architected Way" loading="lazy">
+                    </button>
+                    <div class="deck-body">
+                        <div class="talk-type speaker">&#9679; AWS London WAUG · Jul 2026</div>
+                        <h3>Terraforming the Well-Architected Way</h3>
+                        <div class="deck-venue">IaC reviews that actually catch risks — AWS Head Office, London (33 attendees)</div>
+                        <div class="deck-actions">
+                            <button type="button" class="deck-btn primary" data-deck="terraforming-the-well-architected-way">&#9654; Present</button>
+                            <a class="deck-btn" href="decks/terraforming-the-well-architected-way/terraforming-the-well-architected-way.pdf" target="_blank" rel="noopener noreferrer">&#8681; PDF</a>
+                            <a class="deck-btn" href="https://youtu.be/QUyqRie6-tU" target="_blank" rel="noopener noreferrer">&#9654; Recording</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="deck-card">
+                    <button type="button" class="deck-cover" data-deck="shifting-security-left" aria-label="Present slides: Shifting Security Left">
+                        <span class="deck-count-badge">12 SLIDES</span>
+                        <img src="decks/shifting-security-left/cover.jpg" alt="Title slide of Shifting Security Left" loading="lazy">
+                    </button>
+                    <div class="deck-body">
+                        <div class="talk-type speaker">&#9679; London DevOps Meetup · Mar 2026</div>
+                        <h3>Shifting Security Left — Building Secure CI/CD for Multi-Cloud</h3>
+                        <div class="deck-venue">Supply-chain security, signing, provenance &amp; attestations across AWS + Azure pipelines</div>
+                        <div class="deck-actions">
+                            <button type="button" class="deck-btn primary" data-deck="shifting-security-left">&#9654; Present</button>
+                            <a class="deck-btn" href="decks/shifting-security-left/shifting-security-left.pdf" target="_blank" rel="noopener noreferrer">&#8681; PDF</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="deck-card">
+                    <button type="button" class="deck-cover" data-deck="ebpf-cloud-native-security" aria-label="Present slides: eBPF Revolutionizing Cloud-Native Security">
+                        <span class="deck-count-badge">32 SLIDES</span>
+                        <img src="decks/ebpf-cloud-native-security/cover.jpg" alt="Title slide of eBPF: Revolutionizing Cloud-Native Security" loading="lazy">
+                    </button>
+                    <div class="deck-body">
+                        <div class="talk-type speaker">&#9679; Cloud Native London · Feb 2026</div>
+                        <h3>eBPF: Revolutionizing Cloud-Native Security</h3>
+                        <div class="deck-venue">Kernel-level observability &amp; runtime security with Cilium, Tetragon and Falco (50 attendees)</div>
+                        <div class="deck-actions">
+                            <button type="button" class="deck-btn primary" data-deck="ebpf-cloud-native-security">&#9654; Present</button>
+                            <a class="deck-btn" href="decks/ebpf-cloud-native-security/ebpf-cloud-native-security.pdf" target="_blank" rel="noopener noreferrer">&#8681; PDF</a>
+                            <a class="deck-btn" href="https://youtu.be/IzayRY93z88" target="_blank" rel="noopener noreferrer">&#9654; Recording</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="deck-card">
+                    <button type="button" class="deck-cover" data-deck="elasticsearch-terraform" aria-label="Present slides: Advanced Elasticsearch and Terraform Infrastructure">
+                        <span class="deck-count-badge">22 SLIDES</span>
+                        <img src="decks/elasticsearch-terraform/cover.jpg" alt="Title slide of Advanced Elasticsearch and Terraform Infrastructure" loading="lazy">
+                    </button>
+                    <div class="deck-body">
+                        <div class="talk-type speaker">&#9679; Elastic London · Sep 2025</div>
+                        <h3>Elastic Observability — Automating Elastic with Terraform</h3>
+                        <div class="deck-venue">Securing &amp; automating Elasticsearch across AWS and Azure — CI/CD, optimization results (18 attendees)</div>
+                        <div class="deck-actions">
+                            <button type="button" class="deck-btn primary" data-deck="elasticsearch-terraform">&#9654; Present</button>
+                            <a class="deck-btn" href="decks/elasticsearch-terraform/elasticsearch-terraform.pdf" target="_blank" rel="noopener noreferrer">&#8681; PDF</a>
+                            <a class="deck-btn" href="https://github.com/InfraPlatformer/elastic-terraform-demo" target="_blank" rel="noopener noreferrer">&#9889; Repo</a>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -4070,6 +4408,123 @@ rule no_world_open_ingress {
             loadHashTarget();
             window.addEventListener('hashchange', loadHashTarget);
         })();
+    </script>
+    <!-- Slide deck viewer -->
+    <div id="deck-viewer" role="dialog" aria-modal="true" aria-label="Slide deck viewer">
+        <div class="dv-titlebar">
+            <button type="button" class="terminal-btn red" id="dv-close-dot" aria-label="Close viewer"></button>
+            <span class="terminal-btn yellow" aria-hidden="true"></span>
+            <span class="terminal-btn green" aria-hidden="true"></span>
+            <span class="dv-title"><span class="dv-cmd">alam@slides:~$</span> <span id="dv-title">present deck</span></span>
+            <span class="dv-counter" id="dv-counter">1 / 1</span>
+            <a class="dv-btn" id="dv-pdf" href="#" target="_blank" rel="noopener noreferrer">&#8681; pdf</a>
+            <button type="button" class="dv-btn" id="dv-fullscreen">&#9974; fullscreen</button>
+            <button type="button" class="dv-btn" id="dv-close">esc &#10005;</button>
+        </div>
+        <div class="dv-stage" id="dv-stage">
+            <button type="button" class="dv-nav prev" id="dv-prev" aria-label="Previous slide">&#8249;</button>
+            <img class="dv-slide" id="dv-slide" alt="Slide">
+            <button type="button" class="dv-nav next" id="dv-next" aria-label="Next slide">&#8250;</button>
+        </div>
+        <div class="dv-footer">
+            <div class="dv-progress"><div class="dv-progress-fill" id="dv-progress"></div></div>
+            <div class="dv-hints">
+                <span class="dv-hint-keys"><kbd>&larr;</kbd>/<kbd>&rarr;</kbd> navigate &nbsp; <kbd>Home</kbd>/<kbd>End</kbd> jump &nbsp; <kbd>F</kbd> fullscreen &nbsp; <kbd>Esc</kbd> exit</span>
+                <span id="dv-venue"></span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    (function deckViewer() {
+        var DECKS = {
+            'terraforming-the-well-architected-way': { title: 'Terraforming the Well-Architected Way', slides: 15, venue: 'AWS London WAUG · Jul 2026' },
+            'shifting-security-left': { title: 'Shifting Security Left — Secure CI/CD for Multi-Cloud', slides: 12, venue: 'London DevOps Meetup · Mar 2026' },
+            'ebpf-cloud-native-security': { title: 'eBPF: Revolutionizing Cloud-Native Security', slides: 32, venue: 'Cloud Native London · Feb 2026' },
+            'elasticsearch-terraform': { title: 'Elastic Observability — Automating Elastic with Terraform', slides: 22, venue: 'Elastic London · Sep 2025' }
+        };
+        var viewer = document.getElementById('deck-viewer');
+        var img = document.getElementById('dv-slide');
+        var counter = document.getElementById('dv-counter');
+        var progress = document.getElementById('dv-progress');
+        var titleEl = document.getElementById('dv-title');
+        var venueEl = document.getElementById('dv-venue');
+        var pdfEl = document.getElementById('dv-pdf');
+        var prevBtn = document.getElementById('dv-prev');
+        var nextBtn = document.getElementById('dv-next');
+        var current = null, index = 0, lastFocus = null;
+
+        function pad(n) { return (n < 10 ? '0' : '') + n; }
+        function src(slug, i) { return 'decks/' + slug + '/slide-' + pad(i) + '.jpg'; }
+
+        function render() {
+            img.src = src(current, index + 1);
+            img.alt = DECKS[current].title + ' — slide ' + (index + 1) + ' of ' + DECKS[current].slides;
+            counter.textContent = pad(index + 1) + ' / ' + pad(DECKS[current].slides);
+            progress.style.width = ((index + 1) / DECKS[current].slides * 100) + '%';
+            prevBtn.disabled = index === 0;
+            nextBtn.disabled = index === DECKS[current].slides - 1;
+            // preload neighbours
+            [index + 2, index - 0].forEach(function(n) {
+                if (n >= 1 && n <= DECKS[current].slides) { (new Image()).src = src(current, n); }
+            });
+        }
+        function go(d) {
+            var n = index + d;
+            if (n < 0 || n > DECKS[current].slides - 1) return;
+            index = n; render();
+        }
+        function open(slug) {
+            if (!DECKS[slug]) return;
+            current = slug; index = 0;
+            lastFocus = document.activeElement;
+            titleEl.textContent = 'present ' + slug + '.deck';
+            venueEl.textContent = DECKS[slug].venue;
+            pdfEl.href = 'decks/' + slug + '/' + slug + '.pdf';
+            viewer.classList.add('open');
+            requestAnimationFrame(function() { viewer.classList.add('visible'); });
+            document.body.style.overflow = 'hidden';
+            render();
+            nextBtn.focus();
+        }
+        function close() {
+            viewer.classList.remove('visible');
+            setTimeout(function() { viewer.classList.remove('open'); }, 250);
+            document.body.style.overflow = '';
+            if (document.fullscreenElement) document.exitFullscreen();
+            if (lastFocus && lastFocus.focus) lastFocus.focus();
+        }
+
+        document.querySelectorAll('[data-deck]').forEach(function(el) {
+            el.addEventListener('click', function() { open(el.getAttribute('data-deck')); });
+        });
+        prevBtn.addEventListener('click', function() { go(-1); });
+        nextBtn.addEventListener('click', function() { go(1); });
+        document.getElementById('dv-close').addEventListener('click', close);
+        document.getElementById('dv-close-dot').addEventListener('click', close);
+        document.getElementById('dv-fullscreen').addEventListener('click', function() {
+            if (document.fullscreenElement) { document.exitFullscreen(); }
+            else if (viewer.requestFullscreen) { viewer.requestFullscreen(); }
+        });
+        document.addEventListener('keydown', function(e) {
+            if (!viewer.classList.contains('open')) return;
+            if (e.key === 'Escape') { close(); }
+            else if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); go(1); }
+            else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); go(-1); }
+            else if (e.key === 'Home') { index = 0; render(); }
+            else if (e.key === 'End') { index = DECKS[current].slides - 1; render(); }
+            else if (e.key === 'f' || e.key === 'F') { document.getElementById('dv-fullscreen').click(); }
+        });
+        // touch swipe
+        var touchX = null;
+        document.getElementById('dv-stage').addEventListener('touchstart', function(e) { touchX = e.changedTouches[0].clientX; }, { passive: true });
+        document.getElementById('dv-stage').addEventListener('touchend', function(e) {
+            if (touchX === null) return;
+            var dx = e.changedTouches[0].clientX - touchX;
+            if (Math.abs(dx) > 48) go(dx < 0 ? 1 : -1);
+            touchX = null;
+        }, { passive: true });
+    })();
     </script>
 </body>
 </html>
