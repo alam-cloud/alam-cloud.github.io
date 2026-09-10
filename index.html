@@ -5,9 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Alam Ahmed | Cloud Engineer | AWS · Terraform · Kubernetes</title>
     <meta name="description" content="Alam Ahmed — Cloud Engineer &amp; AWS Community Builder. Terraform, Kubernetes &amp; Security as Code across AWS and Azure. SOA-C03 booked for Dec 2026.">
+    <meta name="robots" content="max-image-preview:large" />
+    <meta name="color-scheme" content="dark" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://api.github.com https://api.open-meteo.com https://credly-readme-stats.onrender.com https://aegzmbudzrnupnknamoi.supabase.co wss://aegzmbudzrnupnknamoi.supabase.co; frame-src https://www.youtube.com https://www.youtube-nocookie.com; object-src 'none'; base-uri 'self'; form-action 'self'" />
     <meta name="theme-color" content="#05080f">
     <meta property="og:title" content="Alam Ahmed | Cloud Engineer">
-    <meta property="og:description" content="From NOC trenches to cloud architecture. Terraform, Kubernetes, Security as Code — AWS Community Builder.">
+    <meta property="og:description" content="Cloud Engineer &amp; AWS Community Builder. Terraform, Kubernetes and Security as Code across AWS and Azure — talks, decks and live infrastructure projects.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://alamahmed.dev/">
     <meta name="twitter:card" content="summary_large_image">
@@ -25,7 +28,8 @@
     <link rel="dns-prefetch" href="https://credly-readme-stats.onrender.com">
     <link rel="dns-prefetch" href="https://api.open-meteo.com">
     <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'" />
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" /></noscript>
     <style>
         :root {
             --bg-primary: #05080f;
@@ -1557,6 +1561,34 @@
         .article-section .article-hero { padding: 0 0 3.5rem; }
         .article-section .article-layout { padding-bottom: 2rem; }
         .article-section .article-footer { margin-bottom: 0; }
+
+        /* ── v3 pass: performance & polish ─────────────────────────── */
+        :root { color-scheme: dark; }
+        /* Anchored targets clear the fixed header */
+        section[id] { scroll-margin-top: 84px; }
+        /* Skip rendering below-the-fold content until it nears the viewport */
+        .talk-card, .deck-card, .skill-category, .telemetry-card,
+        .repo-card, .video-card, .article-section {
+            content-visibility: auto;
+            contain-intrinsic-size: auto 320px;
+        }
+        .article-section { contain-intrinsic-size: auto 1600px; }
+        .deck-card { contain-intrinsic-size: auto 460px; }
+        .telemetry-card { contain-intrinsic-size: auto 150px; }
+        .telemetry-note { opacity: 0.72; }
+        /* Click-to-play video facades */
+        .video-facade { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; background: #000; cursor: pointer; }
+        .video-facade img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+        .video-facade .video-play {
+            position: absolute; inset: 0; margin: auto; width: 72px; height: 50px;
+            border-radius: 12px; border: 1px solid var(--accent-success);
+            background: rgba(5, 8, 15, 0.82); color: var(--accent-success);
+            font-size: 1.3rem; cursor: pointer; display: flex; align-items: center; justify-content: center;
+            transition: all 0.25s; box-shadow: 0 0 24px var(--glow-success);
+        }
+        .video-facade:hover .video-play, .video-facade:focus-within .video-play {
+            background: var(--accent-success); color: var(--bg-primary); transform: scale(1.06);
+        }
     </style>
     <style>
         /* ============ Slide Decks ============ */
@@ -2125,8 +2157,9 @@
             </div>
             <div class="videos-grid">
                 <div class="video-card">
-                    <div class="video-embed">
-                        <iframe src="https://www.youtube.com/embed/QUyqRie6-tU" title="Terraforming the Well-Architected Way" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                    <div class="video-embed video-facade" data-embed-src="https://www.youtube.com/embed/QUyqRie6-tU?autoplay=1" data-title="Terraforming the Well-Architected Way">
+                        <img src="https://i.ytimg.com/vi/QUyqRie6-tU/hqdefault.jpg" alt="Video thumbnail: Terraforming the Well-Architected Way" loading="lazy" decoding="async" />
+                        <button type="button" class="video-play" aria-label="Play talk: Terraforming the Well-Architected Way">▶</button>
                     </div>
                     <div class="video-body">
                         <div class="talk-type speaker">&#9679; AWS London WAUG</div>
@@ -2136,8 +2169,9 @@
                     </div>
                 </div>
                 <div class="video-card">
-                    <div class="video-embed">
-                        <iframe src="https://www.youtube.com/embed/IzayRY93z88" title="eBPF: Revolutionizing Cloud-Native Security" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                    <div class="video-embed video-facade" data-embed-src="https://www.youtube.com/embed/IzayRY93z88?autoplay=1" data-title="eBPF: Revolutionizing Cloud-Native Security">
+                        <img src="https://i.ytimg.com/vi/IzayRY93z88/hqdefault.jpg" alt="Video thumbnail: eBPF: Revolutionizing Cloud-Native Security" loading="lazy" decoding="async" />
+                        <button type="button" class="video-play" aria-label="Play talk: eBPF: Revolutionizing Cloud-Native Security">▶</button>
                     </div>
                     <div class="video-body">
                         <div class="talk-type speaker">&#9679; Cloud Native London</div>
@@ -2147,8 +2181,9 @@
                     </div>
                 </div>
                 <div class="video-card">
-                    <div class="video-embed">
-                        <iframe src="https://www.youtube.com/embed/eiNhcvhAvX8" title="Security as Code with Terraform & OPA" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                    <div class="video-embed video-facade" data-embed-src="https://www.youtube.com/embed/eiNhcvhAvX8?autoplay=1" data-title="Security as Code with Terraform & OPA">
+                        <img src="https://i.ytimg.com/vi/eiNhcvhAvX8/hqdefault.jpg" alt="Video thumbnail: Security as Code with Terraform & OPA" loading="lazy" decoding="async" />
+                        <button type="button" class="video-play" aria-label="Play talk: Security as Code with Terraform & OPA">▶</button>
                     </div>
                     <div class="video-body">
                         <div class="talk-type speaker">&#9679; Yorkshire DevOps</div>
@@ -3925,6 +3960,15 @@ rule no_world_open_ingress {
         }
         const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
+        // Recruiter-facing guestbook: reject obvious trolling before it reaches the DB.
+        // Client-side only (raises the bar for drive-bys); delete existing rows in Supabase.
+        const GB_BLOCKED = ['gandu', 'laude', 'loda', 'bhenchod', 'madarchod', 'chutiya',
+                            'bhosdi', 'randi', 'nigger', 'faggot', 'cunt', 'hitler', 'nazi'];
+        const gbIsClean = (name, message) => {
+            const blob = (name + ' ' + message).toLowerCase();
+            return !GB_BLOCKED.some(w => blob.includes(w));
+        };
+
         /* ---------- Live infrastructure metrics (Supabase) ---------- */
         (async function liveMetrics() {
             const visEl = document.getElementById('live-visitors');
@@ -4141,6 +4185,8 @@ rule no_world_open_ingress {
                         const message = sp === -1 ? '' : arg.slice(sp + 1).trim();
                         if (!message || name.length > 30 || message.length > 200) {
                             cliPrint(['<span class="wrn">rejected:</span> need a name AND a message (name ≤30 chars, message ≤200).']);
+                        } else if (!gbIsClean(name, message)) {
+                            cliPrint(['<span class="wrn">rejected:</span> keep it professional — this guestbook is recruiter-facing.']);
                         } else {
                             cliPrint(['<span class="muted">provisioning guestbook entry...</span>']);
                             (async () => {
@@ -4240,6 +4286,10 @@ rule no_world_open_ingress {
                 const message = msgInput.value.trim();
                 if (!name || !message || name.length > 30 || message.length > 200) {
                     setStatus('rejected: need a name (≤30 chars) AND a message (≤200).', 'err');
+                    return;
+                }
+                if (!gbIsClean(name, message)) {
+                    setStatus('rejected: keep it professional — this guestbook is recruiter-facing.', 'err');
                     return;
                 }
                 submitBtn.disabled = true;
@@ -4497,6 +4547,23 @@ rule no_world_open_ingress {
             window.addEventListener('hashchange', loadHashTarget);
         })();
     </script>
+    <script>
+    /* ---------- YouTube facades: ~1.2MB of player JS loads only on play ---------- */
+    document.querySelectorAll('.video-facade').forEach(function (f) {
+        f.addEventListener('click', function () {
+            if (f.dataset.loaded) return;
+            f.dataset.loaded = '1';
+            var iframe = document.createElement('iframe');
+            iframe.src = f.dataset.embedSrc;
+            iframe.title = f.dataset.title;
+            iframe.loading = 'lazy';
+            iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
+            iframe.setAttribute('allowfullscreen', '');
+            iframe.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;border:0;border-radius:12px 12px 0 0;';
+            f.replaceWith(iframe);
+        });
+    });
+    </script>
     <!-- Slide deck viewer -->
     <div id="deck-viewer" role="dialog" aria-modal="true" aria-label="Slide deck viewer">
         <div class="dv-titlebar">
@@ -4553,7 +4620,7 @@ rule no_world_open_ingress {
             prevBtn.disabled = index === 0;
             nextBtn.disabled = index === DECKS[current].slides - 1;
             // preload neighbours
-            [index + 2, index - 0].forEach(function(n) {
+            [index + 2, index].forEach(function(n) {
                 if (n >= 1 && n <= DECKS[current].slides) { (new Image()).src = src(current, n); }
             });
         }
