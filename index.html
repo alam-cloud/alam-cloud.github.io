@@ -260,6 +260,9 @@
             align-items: center;
             padding-top: 80px;
             position: relative;
+            background:
+                radial-gradient(ellipse 60% 50% at 75% 40%, rgba(0, 212, 170, 0.07), transparent),
+                radial-gradient(ellipse 45% 40% at 15% 70%, rgba(56, 189, 248, 0.05), transparent);
         }
         .hero-grid {
             display: grid;
@@ -440,9 +443,11 @@
         .section-tag::before { content: '//'; color: var(--text-secondary); }
         .section-title {
             font-size: 2.5rem;
-            font-weight: 700;
+            font-weight: 800;
             margin-bottom: 1rem;
-            font-family: 'JetBrains Mono', monospace;
+            font-family: 'Inter', sans-serif;
+            letter-spacing: -0.025em;
+            line-height: 1.15;
         }
         .section-desc {
             color: var(--text-secondary);
@@ -763,11 +768,15 @@
         .contact-link .icon {
             width: 40px; height: 40px;
             background: var(--bg-secondary);
+            border: 1px solid var(--border);
             border-radius: 8px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.2rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--accent-success);
         }
 
         /* Footer */
@@ -1197,7 +1206,10 @@
             .hero-grid, .contact-grid { grid-template-columns: 1fr; }
             .hero-content h1 { font-size: 2.2rem; }
             .talks-grid, .skills-grid, .certs-grid, .videos-grid { grid-template-columns: 1fr; }
-            .hero-stats { grid-template-columns: 1fr; }
+            .hero-stats { grid-template-columns: repeat(3, 1fr); gap: 0.6rem; }
+            .hero-stats .stat-card { padding: 0.7rem 0.4rem; }
+            .hero-stats .stat-value { font-size: 1.4rem; }
+            .hero-stats .stat-label { font-size: 0.6rem; letter-spacing: 0.5px; }
             section { padding: 4rem 0; }
             #boot-sequence { font-size: 12px; }
         }
@@ -1228,10 +1240,26 @@
 
         .mono { font-family: 'JetBrains Mono', monospace; }
         .gradient-text {
-            background: linear-gradient(135deg, var(--accent-success), var(--accent-info));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            color: var(--accent-success);
+        }
+        /* Featured writing card: first article spans the full row */
+        #writing .talks-grid .talk-card:first-child {
+            grid-column: 1 / -1;
+            padding: 2.25rem;
+            background:
+                radial-gradient(circle at 90% 0%, rgba(0, 212, 170, 0.07), transparent 24rem),
+                var(--bg-card);
+        }
+        #writing .talks-grid .talk-card:first-child .talk-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            letter-spacing: -0.015em;
+            max-width: 34ch;
+        }
+        #writing .talks-grid .talk-card:first-child .talk-venue { max-width: 60ch; }
+        @media (max-width: 768px) {
+            #writing .talks-grid .talk-card:first-child { padding: 1.5rem; }
+            #writing .talks-grid .talk-card:first-child .talk-title { font-size: 1.2rem; }
         }
 
 
@@ -2046,17 +2074,6 @@
                     <div class="telemetry-sub">verified on Credly</div>
                 </div>
                 <div class="telemetry-card">
-                    <div class="telemetry-label">Caffeine Level</div>
-                    <div class="telemetry-value warn"><span id="coffee-cups">—</span> cups</div>
-                    <div class="telemetry-sub">today · status: OPTIMAL</div>
-                    <canvas class="spark" width="72" height="28" data-color="#ffd93d" aria-hidden="true"></canvas>
-                </div>
-                <div class="telemetry-card">
-                    <div class="telemetry-label">Interview Status</div>
-                    <div class="telemetry-value">OPERATIONAL</div>
-                    <div class="telemetry-sub">open to cloud / platform engineer roles</div>
-                </div>
-                <div class="telemetry-card">
                     <div class="telemetry-label">SOA-C03 Exam <span style="color: var(--accent-warn);">● booked</span></div>
                     <div class="telemetry-value warn"><span class="soa-countdown">—</span> days</div>
                     <div class="telemetry-sub soa-sub">AWS Certified CloudOps Engineer – Associate · December 2026</div>
@@ -2084,7 +2101,7 @@
                     <div class="telemetry-sub" id="gh-last-push-sub">fetching GitHub activity…</div>
                 </div>
             </div>
-            <div class="telemetry-note">// visitors (one per browser per week), db latency (incl. its sparkline), cert count, weather, clock, last commit &amp; the SOA-C03 countdown are all live — the career stats are real too; only the remaining gauges are decorative</div>
+            <div class="telemetry-note">// visitors (one per browser per week), db latency (incl. its sparkline), cert count, weather, clock, last commit &amp; the SOA-C03 countdown are all live — the career stats are real too; only the sparklines are decorative</div>
         </div>
     </section>
 
@@ -2723,21 +2740,21 @@
                 </div>
                 <div class="contact-links">
                     <a href="mailto:alamzaibahmad615@gmail.com" class="contact-link">
-                        <div class="icon">&#9993;</div>
+                        <div class="icon">@</div>
                         <div>
                             <div style="font-weight: 600;">Email</div>
                             <div style="font-size: 0.8rem; color: var(--text-secondary);">alamzaibahmad615@gmail.com</div>
                         </div>
                     </a>
                     <a href="https://www.linkedin.com/in/alam-ahmed-cloud-engineer" target="_blank" rel="noopener noreferrer" class="contact-link">
-                        <div class="icon">&#128188;</div>
+                        <div class="icon">in</div>
                         <div>
                             <div style="font-weight: 600;">LinkedIn</div>
                             <div style="font-size: 0.8rem; color: var(--text-secondary);">linkedin.com/in/alam-ahmed-cloud-engineer</div>
                         </div>
                     </a>
                     <a href="https://github.com/alam-cloud" target="_blank" rel="noopener noreferrer" class="contact-link">
-                        <div class="icon">&#9889;</div>
+                        <div class="icon">&lt;/&gt;</div>
                         <div>
                             <div style="font-weight: 600;">GitHub</div>
                             <div style="font-size: 0.8rem; color: var(--text-secondary);">github.com/alam-cloud</div>
@@ -3741,6 +3758,7 @@ rule no_world_open_ingress {
             const cups = h < 8 ? 1 : h < 11 ? 2 : h < 14 ? 3 : h < 17 ? 4 : 0;
             const status = cups === 0 ? 'status: RECOVERING' : cups >= 4 ? 'status: DIMINISHING RETURNS' : 'status: OPTIMAL';
             const cupsEl = document.getElementById('coffee-cups');
+            if (!cupsEl) return;
             cupsEl.textContent = cups;
             const sub = cupsEl.closest('.telemetry-card').querySelector('.telemetry-sub');
             if (sub) sub.textContent = 'today · ' + status;
