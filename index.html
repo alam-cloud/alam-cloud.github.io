@@ -1888,7 +1888,8 @@
       "publisher": { "@type": "Organization", "name": "AWS Builder Center" }
     }
     </script>
-<base target="_blank">
+
+
 <base target="_blank">
 </head>
 <body id="top">
@@ -3113,7 +3114,7 @@ rule no_world_open_ingress {
 <aside aria-label="Article contents" class="article-toc">
 <div class="toc-title">cat article.map</div>
 <a href="#x6Tj6PQ-the-venue-aws-holborn">The Venue: AWS Holborn</a>
-<a href="#x6Tj6PQ-my-talk-terraforming-the-well-architected-way">My Talk: Terraforming the Well-Architected Way</a>
+<a href="#x6Tj6PQ-my-talk-terraforming-the-well-architected-way">My Talk: Terraforming the Well-Architected Way</a>
 </aside>
 <article class="article-body" data-lazy-article="articles/terraforming-the-well-architected-way-recap-from-the-aws-london-waug-summer-special.html" data-canonical="https://builder.aws.com/content/3HGyvM25DcXQaOeeIUhGF6Tj6PQ/terraforming-the-well-architected-way-recap-from-the-aws-london-waug-summer-special">
 <p class="article-lazy-placeholder">// full text loads when you get here &mdash; or <a href="https://builder.aws.com/content/3HGyvM25DcXQaOeeIUhGF6Tj6PQ/terraforming-the-well-architected-way-recap-from-the-aws-london-waug-summer-special" target="_blank" rel="noopener noreferrer">read it on AWS Builder Center</a></p>
@@ -3348,7 +3349,7 @@ rule no_world_open_ingress {
             <p>Built with HTML, CSS & caffeine. Deployed on <span style="color: var(--accent-success);">GitHub Pages</span>.</p>
             <p style="margin-top: 0.5rem; opacity: 0.6;">&copy; <span id="footer-year">2026</span> Alam Ahmed. All systems operational.</p>
             <p class="shortcuts" style="margin-top: 0.75rem; opacity: 0.6;">
-                shortcuts: <kbd>~</kbd> terminal &middot; <kbd>1</kbd>–<kbd>9</kbd> jump to section &middot; try <span class="mono" style="color: var(--accent-warn);">sudo hire alam</span>
+                shortcuts: <kbd>~</kbd> terminal &middot; <kbd>1</kbd>–<kbd>9</kbd>/<kbd>0</kbd> jump to section &middot; try <span class="mono" style="color: var(--accent-warn);">sudo hire alam</span>
             </p>
         </div>
     </footer>
@@ -4372,7 +4373,7 @@ rule no_world_open_ingress {
         })();
 
         /* ---------- Global keyboard shortcuts ---------- */
-        const SECTION_ORDER = ['about', 'experience', 'videos', 'talks', 'decks', 'writing', 'projects', 'skills', 'contact'];
+        const SECTION_ORDER = ['about', 'experience', 'videos', 'talks', 'decks', 'writing', 'projects', 'skills', 'now', 'contact'];
         document.addEventListener('keydown', e => {
             const typing = /^(input|textarea)$/i.test(document.activeElement.tagName);
             if (e.key === 'Escape' && cliOverlay.classList.contains('open')) { closeCli(); return; }
@@ -4390,8 +4391,8 @@ rule no_world_open_ingress {
             } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
                 e.preventDefault();
                 openCli();
-            } else if (/^[1-9]$/.test(e.key)) {
-                const target = document.getElementById(SECTION_ORDER[parseInt(e.key, 10) - 1]);
+            } else if (/^[0-9]$/.test(e.key)) {
+                const target = document.getElementById(SECTION_ORDER[e.key === '0' ? 9 : parseInt(e.key, 10) - 1]);
                 if (target) target.scrollIntoView({ behavior: prefersReduced ? 'auto' : 'smooth' });
             }
         });
