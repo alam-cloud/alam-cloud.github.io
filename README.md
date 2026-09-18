@@ -1,9 +1,27 @@
 # Alam Ahmed — Cloud Engineer Portfolio
 
-## Deploy the built site (GitHub Pages)
-The pre-built static site is in this folder's root (`index.html` + `assets/`).
-1. Create a repo on GitHub (e.g. `alamahmed.github.io` or any name).
-2. Upload `index.html`, the `assets/` folder (keep the structure).
-3. Settings → Pages → Deploy from branch → `main` / root. Done.
+Live at **[alamahmed.dev](https://alamahmed.dev)** — terminal-first portfolio,
+static site on GitHub Pages.
 
-To rebuild from source instead: use the included `src/`, run `npm install && npm run build`, and upload the `dist/` output.
+## What's here
+
+- `index.html` — the site (pre-built single-page app)
+- `cv.pdf` — downloadable one-page CV, linked from the hero
+- `avatar.webp`, `og.png` — imagery and social share card
+- `*.html` (article pages) — styled mirrors of my AWS Builder Center
+  articles, each with a canonical link back to the original
+- `sitemap.xml` / `robots.txt` — SEO
+- `decks/` — slide decks from my talks
+- `scripts/update_builder_articles.py` + `.github/workflows/` — Builder Center
+  article sync (manual trigger)
+
+## Updating
+
+Edit files and upload via the GitHub web UI, or push to `main` —
+GitHub Pages deploys automatically on every commit.
+
+## Elsewhere
+
+- [LinkedIn](https://www.linkedin.com/in/alam-ahmed-cloud-engineer)
+- [Credly](https://www.credly.com/users/alam-zaib-ahmad/badges)
+- [AWS Builder Center](https://builder.aws.com/community/@alamzaibahmad)
