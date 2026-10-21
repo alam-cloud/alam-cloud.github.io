@@ -856,80 +856,6 @@
             box-shadow: 0 0 20px var(--glow-success);
         }
 
-        /* Guestbook */
-        .gb-grid {
-            display: grid;
-            grid-template-columns: 1.4fr 1fr;
-            gap: 1.5rem;
-            align-items: start;
-        }
-        .gb-terminal { margin: 0; }
-        .gb-entries { max-height: 320px; overflow-y: auto; }
-        .gb-line {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.82rem;
-            padding: 0.4rem 0;
-            border-bottom: 1px dashed var(--border);
-            word-break: break-word;
-        }
-        .gb-line:last-child { border-bottom: none; }
-        .gb-date { color: var(--accent-info); margin-right: 0.5rem; }
-        .gb-name { color: var(--accent-success); font-weight: 600; }
-        .gb-muted { color: var(--text-secondary); }
-        .gb-form {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 1.25rem;
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-        }
-        .gb-label {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.68rem;
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-            color: var(--text-secondary);
-        }
-        .gb-input {
-            background: var(--bg-primary);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            color: var(--text-primary);
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.85rem;
-            padding: 0.6rem 0.75rem;
-            width: 100%;
-            resize: vertical;
-            transition: border-color 0.3s, box-shadow 0.3s;
-        }
-        .gb-input:focus {
-            outline: none;
-            border-color: var(--accent-success);
-            box-shadow: 0 0 10px var(--glow-success);
-        }
-        .gb-form-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 1rem;
-            margin-top: 0.4rem;
-        }
-        .gb-count {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.7rem;
-            color: var(--text-secondary);
-        }
-        .gb-status {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.75rem;
-            min-height: 1.2em;
-        }
-        .gb-status.ok { color: var(--accent-success); }
-        .gb-status.err { color: var(--accent-alert); }
-        .gb-form .btn[disabled] { opacity: 0.5; cursor: wait; }
-        @media (max-width: 800px) { .gb-grid { grid-template-columns: 1fr; } }
 
         /* Telemetry strip */
         .telemetry-grid {
@@ -1200,8 +1126,9 @@
 
         @media print {
             header, #particles, .scanlines, #boot-sequence, #cli-overlay,
-            #back-to-top, #scroll-progress, .cta-group, #videos,
-            #print-cv, .boot-hint, footer .shortcuts, .telemetry-note, .arch-wrap, .article-section { display: none !important; }
+            #back-to-top, #scroll-progress, .cta-group, #videos, .skip-link,
+            #print-cv, .boot-hint, footer .shortcuts, .telemetry-note, .arch-wrap, .arch-detail,
+            #telemetry, .live-certs, .article-section { display: none !important; }
             body { background: #fff; color: #111; line-height: 1.45; }
             .container { max-width: 100%; padding: 0; }
             section, .hero { padding: 0.9rem 0 !important; min-height: 0 !important; page-break-inside: avoid; }
@@ -1224,6 +1151,13 @@
             .hero-stats { grid-template-columns: repeat(3, 1fr); }
             .skills-grid, .certs-grid, .talks-grid, .telemetry-grid, .projects-grid { grid-template-columns: repeat(2, 1fr); gap: 0.6rem; }
             .tag, .talk-meta, .terminal-prompt, .terminal-command { color: #333 !important; border-color: #ccc; }
+            .tag { background: #fff !important; }
+            .contact-link { background: #fff !important; border: 1px solid #ccc !important; box-shadow: none !important; }
+            .contact-link div, .contact-link div div { color: #111 !important; }
+            .contact-link .icon { background: #f0f0f0 !important; }
+            footer, footer a { color: #555 !important; background: none !important; }
+            .cert-print-list { margin: 0; padding-left: 1.2rem; color: #111; font-size: 0.9rem; }
+            .cert-print-list li { margin-bottom: 0.25rem; }
             a { color: #111 !important; text-decoration: none !important; }
             .print-only { display: block !important; }
         }
@@ -1900,7 +1834,6 @@
                 <li><a href="#writing" data-spy="writing">/writing</a></li>
                 <li><a href="#projects" data-spy="projects">/projects</a></li>
                 <li><a href="#skills" data-spy="skills">/skills</a></li>
-                <li><a href="#guestbook" data-spy="guestbook">/guestbook</a></li>
                 <li><a href="#contact" data-spy="contact">/contact</a></li>
             </ul>
             <div class="status-indicator">
@@ -2583,45 +2516,18 @@
                      loading="lazy" 
                      style="max-width: 100%; height: auto; border-radius: 10px; display: block; margin: 0 auto;">
             </div>
+            <ul class="print-only cert-print-list">
+                <li>52 verified badges on Credly — credly.com/users/alam-zaib-ahmad/badges</li>
+                <li>AWS Well-Architected Proficient · AWS Knowledge: Security Champion · AWS EKS</li>
+                <li>Linux Foundation: Kubernetes &amp; Cloud Native, DevOps &amp; SRE Fundamentals</li>
+                <li>Fortinet Certified Associate &amp; Fundamentals (Cybersecurity)</li>
+                <li>Datadog SRE Learning Path · Datadog Cloud SIEM · Isovalent (Cilium) Platform Engineer</li>
+                <li>In progress: AWS Solutions Architect Associate — exam January</li>
+            </ul>
             <div style="text-align: center; margin-top: 2rem;">
                 <a href="https://www.credly.com/users/alam-zaib-ahmad/badges" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="display: inline-flex;">
                     <span>&#127942;</span> View all badges on Credly
                 </a>
-            </div>
-        </div>
-    </section>
-
-    <section id="guestbook">
-        <div class="container">
-            <div class="section-header">
-                <div class="section-tag">Visitor Log</div>
-                <h2 class="section-title">Sign the <span class="gradient-text">Guestbook</span></h2>
-                <p class="section-desc">A real Postgres table on Supabase's free tier — entries deploy instantly and persist. Be nice; there is a row-level bouncer.</p>
-            </div>
-            <div class="gb-grid">
-                <div class="terminal-window gb-terminal" aria-label="Guestbook entries">
-                    <div class="terminal-header">
-                        <div class="terminal-btn red"></div>
-                        <div class="terminal-btn yellow"></div>
-                        <div class="terminal-btn green"></div>
-                        <span class="terminal-title">guestbook — last 10 entries · live</span>
-                    </div>
-                    <div class="terminal-body gb-entries" id="gb-entries" aria-live="polite">
-                        <div class="gb-line gb-muted">$ select * from guestbook order by created_at desc limit 10;</div>
-                        <div class="gb-line gb-muted">connecting to database…</div>
-                    </div>
-                </div>
-                <form class="gb-form" id="gb-form">
-                    <label class="gb-label" for="gb-name">name</label>
-                    <input class="gb-input" id="gb-name" maxlength="30" placeholder="recruiter_jane" autocomplete="off" required>
-                    <label class="gb-label" for="gb-msg">message</label>
-                    <textarea class="gb-input" id="gb-msg" maxlength="200" rows="3" placeholder="great dashboard — let's talk about that platform role…" required></textarea>
-                    <div class="gb-form-row">
-                        <span class="gb-count" id="gb-count">0 / 200</span>
-                        <button type="submit" class="btn btn-primary" id="gb-submit"><span>&#9889;</span> Deploy entry</button>
-                    </div>
-                    <div class="gb-status" id="gb-status" role="status"></div>
-                </form>
             </div>
         </div>
     </section>
@@ -3312,14 +3218,6 @@ rule no_world_open_ingress {
             return fetch(resource, Object.assign({}, options, { signal: controller.signal }))
                 .finally(() => clearTimeout(timer));
         }
-        // For promise-yielding SDK calls (Supabase) where we can't pass an AbortSignal.
-        function withTimeout(promise, timeoutMs = 8000, label = 'request') {
-            let timer;
-            const timeout = new Promise((_, reject) => {
-                timer = setTimeout(() => reject(new Error(label + ' timed out after ' + timeoutMs + 'ms')), timeoutMs);
-            });
-            return Promise.race([Promise.resolve(promise), timeout]).finally(() => clearTimeout(timer));
-        }
 
         /* ---------- Deploy Splash (fast, skippable) ---------- */
         const bootEl = document.getElementById('boot-sequence');
@@ -3570,7 +3468,7 @@ rule no_world_open_ingress {
                 }
             });
         }, { rootMargin: '-40% 0px -55% 0px' });
-        ['about', 'experience', 'videos', 'talks', 'decks', 'writing', 'projects', 'skills', 'guestbook', 'contact'].forEach(id => {
+        ['about', 'experience', 'videos', 'talks', 'decks', 'writing', 'projects', 'skills', 'contact'].forEach(id => {
             const el = document.getElementById(id);
             if (el) spyObserver.observe(el);
         });
@@ -3834,23 +3732,6 @@ rule no_world_open_ingress {
                 .catch(renderRepoFallback);
         })();
 
-        /* ---------- Guestbook (Supabase free tier) ---------- */
-        const SUPABASE_URL = 'https://aegzmbudzrnupnknamoi.supabase.co';
-        const SUPABASE_ANON_KEY = 'sb_publishable_8iS6Mf5aP9UERrpxIj_WUQ_pKxf81Y1';
-        const guestbookReady = () =>
-            !SUPABASE_URL.includes('PASTE_') && !SUPABASE_ANON_KEY.includes('PASTE_');
-        let sbClient = null;
-        async function getSb() {
-            if (!guestbookReady()) return null;
-            if (!sbClient) {
-                const { createClient } = await withTimeout(
-                    import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm'),
-                    12000, 'supabase sdk load');
-                sbClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-            }
-            return sbClient;
-        }
-        const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
         /* ---------- Interactive CLI ---------- */
         const cliOverlay = document.getElementById('cli-overlay');
@@ -3871,8 +3752,6 @@ rule no_world_open_ingress {
                 '  <span class="inf">certs</span>         certification highlights',
                 '  <span class="inf">contact</span>       how to reach Alam',
                 '  <span class="inf">cv</span>            print / save this page as a PDF CV',
-                '  <span class="inf">sign &lt;name&gt; &lt;msg&gt;</span>  sign the guestbook',
-                '  <span class="inf">guestbook</span>     read the guestbook',
                 '  <span class="inf">sudo hire alam</span>  you know you want to',
                 '  <span class="inf">clear</span>         wipe the terminal',
                 '  <span class="inf">exit</span>          close this terminal'
@@ -3927,20 +3806,6 @@ rule no_world_open_ingress {
                 '<span class="ok">github</span>    <a href="https://github.com/alam-cloud" target="_blank" rel="noopener noreferrer">alam-cloud</a> <span class="muted">(legacy: InfraPlatformer)</span>'
             ],
             cv: () => { window.print(); return ['Opening print dialog — save as PDF for a recruiter-friendly CV.']; },
-            guestbook: async () => {
-                const sb = await getSb();
-                if (!sb) return ['<span class="wrn">guestbook offline</span> — database not provisioned yet. Check back soon.'];
-                const { data, error } = await sb.from('guestbook').select('name, message, created_at').order('created_at', { ascending: false }).limit(10);
-                if (error) return [`<span class="wrn">query failed:</span> ${esc(error.message)}`];
-                if (!data.length) return ['Guestbook is empty. Be the first: <span class="inf">sign YourName your message</span>'];
-                const lines = ['<span class="ok">== guestbook (last ' + data.length + ') ==</span>'];
-                data.forEach(r => {
-                    const d = new Date(r.created_at).toISOString().slice(0, 10);
-                    lines.push(`<span class="inf">${d}</span> <span class="ok">${esc(r.name)}</span>: ${esc(r.message)}`);
-                });
-                lines.push('', 'Leave yours: <span class="inf">sign YourName your message</span>');
-                return lines;
-            },
             clear: () => { cliOutput.innerHTML = ''; return []; },
             exit: () => { closeCli(); return []; },
             'sudo hire alam': () => [
@@ -3992,29 +3857,7 @@ rule no_world_open_ingress {
                 echo.innerHTML = `<span class="ok">guest:~$</span> ${raw.replace(/</g, '&lt;')}`;
                 cliOutput.appendChild(echo);
                 const cmd = raw.toLowerCase();
-                if (cmd.startsWith('sign')) {
-                    const arg = raw.slice(4).trim();
-                    if (!arg) {
-                        cliPrint(['usage: <span class="inf">sign YourName your message here</span>']);
-                    } else {
-                        const sp = arg.indexOf(' ');
-                        const name = sp === -1 ? arg : arg.slice(0, sp);
-                        const message = sp === -1 ? '' : arg.slice(sp + 1).trim();
-                        if (!message || name.length > 30 || message.length > 200) {
-                            cliPrint(['<span class="wrn">rejected:</span> need a name AND a message (name ≤30 chars, message ≤200).']);
-                        } else {
-                            cliPrint(['<span class="muted">provisioning guestbook entry...</span>']);
-                            (async () => {
-                                const sb = await getSb();
-                                if (!sb) { cliPrint(['<span class="wrn">guestbook offline</span> — database not provisioned yet. Check back soon.']); return; }
-                                const { error } = await withTimeout(sb.from('guestbook').insert({ name, message }), 15000, 'guestbook insert');
-                                cliPrint(error
-                                    ? [`<span class="wrn">deploy failed:</span> ${esc(error.message)}`]
-                                    : ['<span class="ok">entry committed.</span> guestbook updated — run <span class="inf">guestbook</span> to see it.']);
-                            })().catch(err => cliPrint([`<span class="wrn">deploy failed:</span> ${esc(err.message || 'network unreachable')}`]));
-                        }
-                    }
-                } else if (CLI_COMMANDS[cmd]) {
+                if (CLI_COMMANDS[cmd]) {
                     const out = CLI_COMMANDS[cmd]();
                     if (out instanceof Promise) out.then(lines => cliPrint(lines)).catch(() => cliPrint(['<span class="wrn">command failed.</span>']));
                     else cliPrint(out);
@@ -4035,92 +3878,6 @@ rule no_world_open_ingress {
             }
         });
 
-        /* ---------- Visible guestbook section (same Supabase table as the CLI) ---------- */
-        (function guestbookSection() {
-            const entriesEl = document.getElementById('gb-entries');
-            const form = document.getElementById('gb-form');
-            if (!entriesEl || !form) return;
-            const nameInput = document.getElementById('gb-name');
-            const msgInput = document.getElementById('gb-msg');
-            const countEl = document.getElementById('gb-count');
-            const statusEl = document.getElementById('gb-status');
-            const submitBtn = document.getElementById('gb-submit');
-
-            msgInput.addEventListener('input', () => {
-                countEl.textContent = msgInput.value.length + ' / 200';
-            });
-
-            const setStatus = (msg, cls) => {
-                statusEl.textContent = msg;
-                statusEl.className = 'gb-status' + (cls ? ' ' + cls : '');
-            };
-
-            async function loadEntries() {
-                let sb;
-                try {
-                    sb = await getSb();
-                } catch (e) {
-                    entriesEl.innerHTML = '<div class="gb-line gb-muted">guestbook offline — SDK failed to load.</div>';
-                    return;
-                }
-                if (!sb) {
-                    entriesEl.innerHTML = '<div class="gb-line gb-muted">guestbook offline — database not provisioned yet.</div>';
-                    return;
-                }
-                let data, error;
-                try {
-                    ({ data, error } = await withTimeout(
-                        sb.from('guestbook').select('name, message, created_at').order('created_at', { ascending: false }).limit(10),
-                        15000, 'guestbook query'));
-                } catch (e) {
-                    entriesEl.innerHTML = '<div class="gb-line gb-muted">database unreachable — the free-tier DB may be paused. Entries return once it wakes.</div>';
-                    return;
-                }
-                if (error) {
-                    entriesEl.innerHTML = '<div class="gb-line gb-muted">database unreachable — the free-tier DB may be paused. Entries return once it wakes.</div>';
-                    return;
-                }
-                if (!data.length) {
-                    entriesEl.innerHTML = '<div class="gb-line gb-muted">0 rows returned — be the first to sign &rarr;</div>';
-                    return;
-                }
-                entriesEl.innerHTML = '<div class="gb-line gb-muted">$ select * from guestbook order by created_at desc limit 10; &mdash; ' + data.length + ' row(s)</div>';
-                data.forEach(r => {
-                    const d = new Date(r.created_at).toISOString().slice(0, 10);
-                    const div = document.createElement('div');
-                    div.className = 'gb-line';
-                    div.innerHTML = '<span class="gb-date">' + d + '</span><span class="gb-name">' + esc(r.name) + '</span><span class="gb-muted">:</span> ' + esc(r.message);
-                    entriesEl.appendChild(div);
-                });
-            }
-            loadEntries();
-
-            form.addEventListener('submit', async e => {
-                e.preventDefault();
-                const name = nameInput.value.trim();
-                const message = msgInput.value.trim();
-                if (!name || !message || name.length > 30 || message.length > 200) {
-                    setStatus('rejected: need a name (≤30 chars) AND a message (≤200).', 'err');
-                    return;
-                }
-                submitBtn.disabled = true;
-                setStatus('provisioning guestbook entry...', '');
-                try {
-                    const sb = await getSb();
-                    if (!sb) { setStatus('guestbook offline — database not provisioned yet.', 'err'); return; }
-                    const { error } = await withTimeout(sb.from('guestbook').insert({ name, message }), 15000, 'guestbook insert');
-                    if (error) { setStatus('deploy failed: ' + error.message, 'err'); return; }
-                    setStatus('entry committed. thanks for signing!', 'ok');
-                    form.reset();
-                    countEl.textContent = '0 / 200';
-                    loadEntries();
-                } catch (err) {
-                    setStatus('deploy failed: network unreachable.', 'err');
-                } finally {
-                    submitBtn.disabled = false;
-                }
-            });
-        })();
 
         /* ---------- Global keyboard shortcuts ---------- */
         const SECTION_ORDER = ['about', 'experience', 'videos', 'talks', 'writing', 'projects', 'skills', 'contact'];
