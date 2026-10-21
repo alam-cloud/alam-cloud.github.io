@@ -95,41 +95,102 @@
             background: repeating-linear-gradient(0deg, rgba(255,255,255,0.018) 0 1px, transparent 1px 3px);
         }
 
-        /* Boot Sequence Overlay */
+        /* Deploy Splash — quick, professional entry (replaces old scrolling boot log) */
         #boot-sequence {
             position: fixed;
             top: 0; left: 0;
             width: 100%; height: 100%;
-            background: var(--bg-primary);
+            background: radial-gradient(ellipse at 50% 40%, #0a1220 0%, var(--bg-primary) 65%);
             z-index: 9999;
             display: flex;
-            flex-direction: column;
+            align-items: center;
             justify-content: center;
             padding: 2rem;
             font-family: 'JetBrains Mono', monospace;
-            font-size: 14px;
-            transition: opacity 0.6s ease-out, visibility 0.6s;
+            transition: opacity 0.5s ease-out, visibility 0.5s;
             cursor: pointer;
         }
         #boot-sequence.done { opacity: 0; visibility: hidden; pointer-events: none; }
-        .boot-inner { max-width: 760px; width: 100%; margin: 0 auto; }
-        .boot-line {
-            color: var(--accent-success);
-            opacity: 0;
-            transform: translateX(-10px);
-            animation: bootIn 0.25s forwards;
-            margin: 2px 0;
-            white-space: pre-wrap;
+        .boot-card {
+            width: 100%;
+            max-width: 420px;
+            text-align: center;
+            animation: splashIn 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
         }
-        .boot-line.error { color: var(--accent-alert); }
-        .boot-line.warn { color: var(--accent-warn); }
-        .boot-line.info { color: var(--accent-info); }
-        @keyframes bootIn { to { opacity: 1; transform: translateX(0); } }
-        .boot-hint {
-            margin-top: 2rem;
+        @keyframes splashIn { from { opacity: 0; transform: translateY(14px) scale(0.97); } to { opacity: 1; transform: none; } }
+        .boot-logo {
+            font-size: 2.6rem;
+            color: var(--accent-info);
+            text-shadow: 0 0 24px var(--glow-info);
+            animation: pulse 1.6s infinite;
+            line-height: 1;
+        }
+        .boot-name {
+            margin-top: 0.9rem;
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            letter-spacing: 0.5px;
+        }
+        .boot-name span { color: var(--accent-success); }
+        .boot-stages {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 0.4rem;
+            margin: 1.4rem 0 1rem;
+            font-size: 0.7rem;
             color: var(--text-secondary);
-            font-size: 0.75rem;
-            opacity: 0.7;
+        }
+        .boot-stage {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.3rem 0.65rem;
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            background: var(--bg-card);
+            transition: all 0.25s;
+            white-space: nowrap;
+        }
+        .boot-stage::before {
+            content: '';
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            background: var(--border);
+            transition: all 0.25s;
+        }
+        .boot-stage.active { border-color: var(--accent-info); color: var(--accent-info); }
+        .boot-stage.active::before { background: var(--accent-info); box-shadow: 0 0 8px var(--glow-info); animation: blink 0.8s infinite; }
+        .boot-stage.passed { border-color: var(--accent-success); color: var(--accent-success); }
+        .boot-stage.passed::before { background: var(--accent-success); box-shadow: 0 0 8px var(--glow-success); }
+        .boot-bar {
+            height: 4px;
+            border-radius: 2px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            overflow: hidden;
+        }
+        .boot-bar-fill {
+            height: 100%;
+            width: 0;
+            border-radius: 2px;
+            background: linear-gradient(90deg, var(--accent-success), var(--accent-info));
+            box-shadow: 0 0 12px var(--glow-success);
+            transition: width 0.3s ease;
+        }
+        .boot-status {
+            margin-top: 0.7rem;
+            font-size: 0.72rem;
+            color: var(--text-secondary);
+            min-height: 1.1em;
+        }
+        .boot-status .ok { color: var(--accent-success); }
+        .boot-hint {
+            margin-top: 1.6rem;
+            color: var(--text-secondary);
+            font-size: 0.7rem;
+            opacity: 0.6;
             animation: blink 2s infinite;
         }
 
@@ -414,6 +475,7 @@
 
         /* Sections */
         section { padding: 6rem 0; position: relative; }
+        section[id] { scroll-margin-top: 76px; }
         .section-alt { background: var(--bg-secondary); }
         .section-header { margin-bottom: 3rem; }
         .section-tag {
@@ -1801,6 +1863,7 @@
             cursor: pointer;
         }
     </style>
+<base target="_blank">
 </head>
 <body id="top">
 
@@ -1809,8 +1872,19 @@
     <div class="scanlines" aria-hidden="true"></div>
 
     <div id="boot-sequence" role="status" aria-label="Loading sequence">
-        <div class="boot-inner" id="boot-inner"></div>
-        <div class="boot-hint" style="max-width: 760px; margin-left: auto; margin-right: auto; width: 100%;">» loading portfolio… click to skip</div>
+        <div class="boot-card">
+            <div class="boot-logo" aria-hidden="true">&#9672;</div>
+            <div class="boot-name">alam<span>_ahmed</span>.tf</div>
+            <div class="boot-stages" id="boot-stages" aria-hidden="true">
+                <span class="boot-stage">init</span>
+                <span class="boot-stage">validate</span>
+                <span class="boot-stage">plan</span>
+                <span class="boot-stage">apply</span>
+            </div>
+            <div class="boot-bar" aria-hidden="true"><div class="boot-bar-fill" id="boot-bar-fill"></div></div>
+            <div class="boot-status" id="boot-status">initializing providers…</div>
+            <div class="boot-hint">click anywhere to skip</div>
+        </div>
     </div>
     <canvas id="particles" aria-hidden="true"></canvas>
 
@@ -1861,7 +1935,7 @@
                             <div class="stat-label">Years Cloud Exp</div>
                         </div>
                         <div class="stat-card">
-                            <div class="stat-value" data-count="12" aria-label="12">0</div>
+                            <div class="stat-value" data-count="13" aria-label="13">0</div>
                             <div class="stat-label">Talks & Publications</div>
                         </div>
                         <div class="stat-card">
@@ -2287,8 +2361,17 @@
             </div>
             <div class="talks-grid">
                 <!-- BUILDER-ARTICLES:START -->
-                <div class="talk-card" style="border-color: rgba(0, 212, 170, 0.45); box-shadow: 0 0 24px rgba(0, 212, 170, 0.08);">
-                    <div class="talk-type author">&#9679; Article · New</div>
+                <div class="talk-card" style="border-color: rgba(255, 217, 61, 0.5); box-shadow: 0 0 24px rgba(255, 217, 61, 0.1);">
+                    <div class="talk-type author">&#9679; Article · New · &#11088; Spotlight Pick ×2</div>
+                    <h3 class="talk-title">Security as Code: Terraform Operations on AWS in the Age of Frontier Agents</h3>
+                    <div class="talk-venue">Featured in the AWS Community Builders Spotlight (Oct 12th edition) — my second spotlight. Running Terraform operations safely when AI agents are writing the plan</div>
+                    <div class="talk-meta">
+                        <span>Oct 2026</span>
+                        <a href="https://dev.to/aws-builders/security-as-code-terraform-operations-on-aws-in-the-age-of-frontier-agents-10h4" target="_blank" rel="noopener noreferrer" class="talk-link">Read &#8599;</a>
+                    </div>
+                </div>
+                <div class="talk-card">
+                    <div class="talk-type author">&#9679; Article</div>
                     <h3 class="talk-title">Security at the Speed of Synth: Policy as Code in the AWS DevToolchain</h3>
                     <div class="talk-venue">CDK-nag, CloudFormation Guard, CodePipeline and Amazon Q Developer — making insecure infrastructure undeliverable across the developer loop</div>
                     <div class="talk-meta">
@@ -2988,7 +3071,7 @@ rule no_world_open_ingress {
 <aside aria-label="Article contents" class="article-toc">
 <div class="toc-title">cat article.map</div>
 <a href="#x6Tj6PQ-the-venue-aws-holborn">The Venue: AWS Holborn</a>
-<a href="#x6Tj6PQ-my-talk-terraforming-the-well-architected-way">My Talk: Terraforming the Well-Architected Way</a>
+<a href="#x6Tj6PQ-my-talk-terraforming-the-well-architected-way">My Talk: Terraforming the Well-Architected Way</a>
 </aside>
 <article class="article-body" data-lazy-article="articles/terraforming-the-well-architected-way-recap-from-the-aws-london-waug-summer-special.html" data-canonical="https://builder.aws.com/content/3HGyvM25DcXQaOeeIUhGF6Tj6PQ/terraforming-the-well-architected-way-recap-from-the-aws-london-waug-summer-special">
 <p class="article-lazy-placeholder">// full text loads when you get here &mdash; or <a href="https://builder.aws.com/content/3HGyvM25DcXQaOeeIUhGF6Tj6PQ/terraforming-the-well-architected-way-recap-from-the-aws-london-waug-summer-special" target="_blank" rel="noopener noreferrer">read it on AWS Builder Center</a></p>
@@ -3266,47 +3349,27 @@ rule no_world_open_ingress {
             return Promise.race([Promise.resolve(promise), timeout]).finally(() => clearTimeout(timer));
         }
 
-        /* ---------- Boot Sequence (skippable) ---------- */
-        const bootDate = new Date().toISOString().replace('T', ' ').slice(0, 19) + ' UTC';
-        const bootLines = [
-            { text: 'BIOS Date: ' + bootDate, type: 'info', delay: 80 },
-            { text: 'CPU: Cloud Engineer v2.0', type: 'success', delay: 180 },
-            { text: 'Memory Test: 640K OK... 1048576K OK', type: 'success', delay: 280 },
-            { text: 'Initializing Terraform providers...', type: 'info', delay: 420 },
-            { text: '  - provider[registry.terraform.io/hashicorp/aws] ~> 5.0', type: 'info', delay: 520 },
-            { text: '  - provider[registry.terraform.io/hashicorp/azurerm] ~> 3.0', type: 'info', delay: 620 },
-            { text: '  - provider[registry.terraform.io/hashicorp/kubernetes] ~> 2.0', type: 'info', delay: 720 },
-            { text: 'Loading modules: networking, compute, security...', type: 'warn', delay: 880 },
-            { text: '  [WARN] Legacy MSP experience detected. Compiling to cloud-native...', type: 'warn', delay: 1040 },
-            { text: '  [OK] NOC troubleshooting skills imported successfully', type: 'success', delay: 1200 },
-            { text: 'Starting Kubernetes cluster...', type: 'info', delay: 1360 },
-            { text: '  Pod "alam-ahmed-portfolio" created', type: 'success', delay: 1520 },
-            { text: '  Service exposed on port 443', type: 'success', delay: 1620 },
-            { text: 'Running security scan (OPA + Conftest)...', type: 'info', delay: 1780 },
-            { text: '  [PASS] No misconfigurations found', type: 'success', delay: 1940 },
-            { text: '  [PASS] Security as Code policies enforced', type: 'success', delay: 2040 },
-            { text: 'Applying infrastructure...', type: 'info', delay: 2200 },
-            { text: '  aws_s3_bucket.portfolio: Creation complete', type: 'success', delay: 2360 },
-            { text: '  aws_cloudfront_distribution.cdn: Creation complete', type: 'success', delay: 2460 },
-            { text: '  kubernetes_ingress.portfolio: Creation complete', type: 'success', delay: 2560 },
-            { text: 'Apply complete! Resources: 42 added, 0 changed, 0 destroyed.', type: 'success', delay: 2720 },
-            { text: 'Outputs:', type: 'info', delay: 2880 },
-            { text: '  portfolio_url = "https://alam-ahmed.dev"', type: 'success', delay: 2980 },
-            { text: '  status      = "READY_FOR_PRODUCTION"', type: 'success', delay: 3080 },
-            { text: '', type: 'info', delay: 3220 },
-            { text: '[WARN] Detected recruiter eyeballs. Increasing font size by 0% and pretending to be humble...', type: 'warn', delay: 3320 },
-            { text: 'Boot sequence complete. Welcome, recruiter.', type: 'success', delay: 3600 },
-        ];
-
+        /* ---------- Deploy Splash (fast, skippable) ---------- */
         const bootEl = document.getElementById('boot-sequence');
-        const bootInner = document.getElementById('boot-inner');
+        const bootBarFill = document.getElementById('boot-bar-fill');
+        const bootStatus = document.getElementById('boot-status');
+        const bootStages = Array.from(document.querySelectorAll('#boot-stages .boot-stage'));
         const bootTimers = [];
         let bootDone = false;
+
+        const splashSteps = [
+            { pct: 22,  label: 'initializing providers…',              delay: 120 },
+            { pct: 46,  label: '0 policy violations · OPA + Conftest', delay: 430 },
+            { pct: 74,  label: 'plan: 42 to add, 0 to destroy',        delay: 740 },
+            { pct: 100, label: '<span class="ok">apply complete — welcome.</span>', delay: 1050 },
+        ];
 
         function finishBoot() {
             if (bootDone) return;
             bootDone = true;
             bootTimers.forEach(clearTimeout);
+            bootStages.forEach(s => { s.classList.remove('active'); s.classList.add('passed'); });
+            bootBarFill.style.width = '100%';
             bootEl.classList.add('done');
             afterBoot();
         }
@@ -3314,26 +3377,26 @@ rule no_world_open_ingress {
         if (prefersReduced) {
             finishBoot();
         } else {
-            const BOOT_SPEED = 0.55; // whole sequence ~2s; failsafe below guarantees exit
-            bootLines.forEach((line, i) => {
+            splashSteps.forEach((step, i) => {
                 bootTimers.push(setTimeout(() => {
-                    const div = document.createElement('div');
-                    div.className = `boot-line ${line.type}`;
-                    div.textContent = line.text;
-                    bootInner.appendChild(div);
-                    if (i === bootLines.length - 1) {
-                        bootTimers.push(setTimeout(finishBoot, 700));
+                    bootStages.forEach((s, j) => {
+                        s.classList.toggle('passed', j < i);
+                        s.classList.toggle('active', j === i);
+                    });
+                    bootBarFill.style.width = step.pct + '%';
+                    bootStatus.innerHTML = step.label;
+                    if (i === splashSteps.length - 1) {
+                        bootTimers.push(setTimeout(finishBoot, 500));
                     }
-                }, line.delay * BOOT_SPEED));
+                }, step.delay));
             });
             bootEl.addEventListener('click', finishBoot);
             window.addEventListener('keydown', function onKey() {
                 finishBoot();
                 window.removeEventListener('keydown', onKey);
             });
-            // Failsafe: never hold visitors on the boot screen longer than 3s,
-            // even if a timer is throttled (background tab, slow device).
-            bootTimers.push(setTimeout(finishBoot, 3000));
+            // Failsafe: never hold visitors on the splash longer than 2.5s.
+            bootTimers.push(setTimeout(finishBoot, 2500));
         }
 
         /* ---------- Post-boot: terminal reveal, typewriter, counters ---------- */
@@ -3535,7 +3598,7 @@ rule no_world_open_ingress {
                 }
             });
         }, { rootMargin: '-40% 0px -55% 0px' });
-        ['about', 'experience', 'videos', 'talks', 'writing', 'projects', 'skills', 'guestbook', 'contact'].forEach(id => {
+        ['about', 'experience', 'videos', 'talks', 'decks', 'writing', 'projects', 'skills', 'guestbook', 'contact'].forEach(id => {
             const el = document.getElementById(id);
             if (el) spyObserver.observe(el);
         });
@@ -3956,7 +4019,7 @@ rule no_world_open_ingress {
             ],
             talks: () => [
                 // BUILDER-LATEST-ARTICLE:START
-                "<span class=\"inf\">Article:</span> Security at the Speed of Synth: Policy as Code in the AWS DevToolchain (Aug 2026)",
+                "<span class=\"inf\">Article:</span> Security as Code: Terraform Operations on AWS in the Age of Frontier Agents (Oct 2026) &#11088; Spotlight",
                 // BUILDER-LATEST-ARTICLE:END
                 'Terraforming the Well-Architected Way — AWS London HQ (33)',
                 'eBPF: Revolutionizing Cloud-Native Security — Cloud Native London (50)',
@@ -3968,7 +4031,8 @@ rule no_world_open_ingress {
             writing: () => [
                 '<span class="ok">Published on AWS Builder Center:</span>',
                 // BUILDER-TERMINAL-ARTICLES:START
-                "  <span class=\"inf\">Aug 26</span> Security at the Speed of Synth: Policy as Code in the AWS… <span class=\"ok\">New</span>",
+                "  <span class=\"inf\">Oct 26</span> Security as Code: Terraform Operations on AWS in the Age of… <span class=\"wrn\">&#11088; Spotlight pick</span>",
+                "  <span class=\"inf\">Aug 26</span> Security at the Speed of Synth: Policy as Code in the AWS…",
                 "  <span class=\"inf\">Jul 26</span> Terraforming the Well-Architected Way: Recap from the AWS London…",
                 "  <span class=\"inf\">Jul 26</span> The Guarded Canary: How to Safely Ship AI-Generated Infrastructure…",
                 "  <span class=\"inf\">Jun 26</span> Terraform at MSP Scale: Engineering Multi-Tenant Infrastructure as…",
