@@ -587,6 +587,16 @@
             color: var(--accent-success);
         }
 
+
+        .btn-ghost {
+            background: none;
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            padding: 0.45rem 0.9rem;
+            font-size: 0.78rem;
+        }
+        .btn-ghost:hover { border-color: var(--accent-success); color: var(--accent-success); box-shadow: none; transform: none; }
+
         /* Videos */
         .videos-grid {
             display: grid;
@@ -740,6 +750,63 @@
             border-radius: 3px;
             width: 0;
             transition: width 1.5s ease-out;
+        }
+
+
+
+        /* Colophon */
+        .colophon-card {
+            max-width: 760px;
+            margin: 0 auto;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-left: 3px solid var(--accent-success);
+            border-radius: 10px;
+            padding: 1.6rem 1.8rem;
+        }
+        .colophon-body { font-size: 0.9rem; color: var(--text-secondary); line-height: 1.7; margin-bottom: 0.8rem; }
+        .colophon-body .mono { color: var(--accent-info); }
+        @media print { #colophon { display: none !important; } }
+
+        /* Case studies */
+        .case-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.25rem;
+            margin-bottom: 2.5rem;
+        }
+        .case-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 1.4rem;
+            transition: border-color 0.3s, transform 0.3s;
+        }
+        .case-card:hover { border-color: var(--accent-success); transform: translateY(-3px); }
+        .case-tag {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.68rem;
+            color: var(--accent-info);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 0.6rem;
+        }
+        .case-title { font-size: 1.02rem; margin-bottom: 0.7rem; line-height: 1.35; }
+        .case-card p { font-size: 0.84rem; color: var(--text-secondary); margin-bottom: 0.55rem; line-height: 1.55; }
+        .case-label { color: var(--accent-success); font-weight: 600; font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; text-transform: uppercase; }
+        .case-link {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            color: var(--accent-success);
+            text-decoration: none;
+        }
+        .case-link:hover { text-decoration: underline; }
+        @media print {
+            .case-grid { grid-template-columns: 1fr; gap: 0.6rem; margin-bottom: 1rem; }
+            .case-card { border: 1px solid #ccc !important; box-shadow: none !important; background: #fff !important; }
+            .case-title, .case-card p { color: #111 !important; }
+            .case-tag, .case-label { color: #333 !important; }
+            .case-link { color: #111 !important; }
         }
 
         /* Certs */
@@ -1148,6 +1215,7 @@
             .stat-card, .talk-card, .skill-category, .cert-item, .telemetry-card,
             .terminal-window, .repo-card { border: 1px solid #ccc !important; box-shadow: none !important; background: #fff !important; }
             .hero-grid, .contact-grid { grid-template-columns: 1fr; gap: 1rem; }
+            .hero-avatar { display: none !important; }
             .hero-stats { grid-template-columns: repeat(3, 1fr); }
             .skills-grid, .certs-grid, .talks-grid, .telemetry-grid, .projects-grid { grid-template-columns: repeat(2, 1fr); gap: 0.6rem; }
             .tag, .talk-meta, .terminal-prompt, .terminal-command { color: #333 !important; border-color: #ccc; }
@@ -1798,6 +1866,7 @@
         }
     </style>
 <base target="_blank">
+<base target="_blank">
 </head>
 <body id="top">
 
@@ -1846,10 +1915,15 @@
 
     <main>
     <div class="container print-only" style="padding-top: 0;">
-        <h1 style="font-family: 'JetBrains Mono', monospace; font-size: 1.6rem;">Alam Ahmed — Cloud Engineer</h1>
+        <h1 style="font-family: Arial, Helvetica, sans-serif; font-size: 1.5rem; margin-bottom: 0.2rem;">Alam Ahmed</h1>
+        <p style="font-size: 0.95rem; font-weight: 600; margin: 0 0 0.3rem;">Cloud Engineer · AWS Community Builder (Dev-Tools)</p>
         <p style="font-size: 0.85rem; color: #333;">
             Hemel Hempstead, UK · alamzaibahmad615@gmail.com · linkedin.com/in/alam-ahmed-cloud-engineer · github.com/alam-cloud
         </p>
+        <h2 style="font-size: 1rem; margin: 0.8rem 0 0.2rem; text-transform: uppercase; letter-spacing: 0.05em;">Professional Summary</h2>
+        <p style="font-size: 0.88rem; color: #222; margin: 0;">Cloud engineer specialising in secure, automated infrastructure across AWS and Azure — Terraform, Kubernetes, and Security as Code. Hands-on production incident response background (1,400+ tickets resolved across P1–P4) at MSP scale, currently preparing for the AWS Solutions Architect Associate exam (January). Published AWS Builder Center author and conference speaker on Terraform, policy as code, and cloud-native security.</p>
+        <h2 style="font-size: 1rem; margin: 0.8rem 0 0.2rem; text-transform: uppercase; letter-spacing: 0.05em;">Key Skills</h2>
+        <p style="font-size: 0.88rem; color: #222; margin: 0;">Terraform · AWS · Microsoft Azure · Kubernetes · Docker · Python · Bash · CI/CD (GitHub Actions, GitLab CI) · OPA/Conftest (Policy as Code) · Security as Code · Networking (VPN, firewalls, FortiGate) · CloudWatch · Datadog · Linux</p>
         <hr style="border: none; border-top: 1px solid #ccc; margin: 0.6rem 0;">
     </div>
     <section class="hero" id="about">
@@ -1860,7 +1934,7 @@
                     <h1 id="hero-name" data-text="Alam Ahmed">Alam Ahmed</h1>
                     <div class="subtitle" id="typewriter" aria-live="polite"></div>
                     <p class="description">
-                        I design and automate secure infrastructure across AWS and Azure — Terraform, Kubernetes, and Security as Code — backed by hands-on production incident response experience. Currently preparing for the AWS Solutions Architect Associate exam (January).
+                        Cloud Engineer · AWS Community Builder — I design, automate and write about secure infrastructure: Terraform, Kubernetes, and Security as Code.
                     </p>
                     <div class="hero-stats">
                         <div class="stat-card">
@@ -1880,13 +1954,18 @@
                         <button type="button" class="btn btn-primary" onclick="window.print()">
                             <span>&#9113;</span> Download CV (PDF)
                         </button>
-                        <button type="button" class="btn btn-secondary" id="open-terminal-btn">
-                            <span>&gt;_</span> Open Terminal
+                        <a href="#talks" class="btn btn-secondary">
+                            <span>&#9654;</span> View Talks
+                        </a>
+                    </div>
+                    <div class="cta-group" style="margin-top: 0.6rem;">
+                        <button type="button" class="btn btn-ghost" id="open-terminal-btn">
+                            <span>&gt;_</span> Terminal
                         </button>
-                        <a href="https://www.linkedin.com/in/alam-ahmed-cloud-engineer" target="_blank" rel="noopener noreferrer" class="btn btn-secondary">
+                        <a href="https://www.linkedin.com/in/alam-ahmed-cloud-engineer" target="_blank" rel="noopener noreferrer" class="btn btn-ghost">
                             <span>&#8599;</span> LinkedIn
                         </a>
-                        <a href="mailto:alamzaibahmad615@gmail.com" class="btn btn-secondary">
+                        <a href="mailto:alamzaibahmad615@gmail.com" target="_self" class="btn btn-ghost">
                             <span>&#9993;</span> Email
                         </a>
                     </div>
@@ -2342,6 +2421,32 @@
                 <h2 class="section-title">Projects & <span class="gradient-text">Repos</span> <span class="live-badge">LIVE · GITHUB API</span></h2>
                 <p class="section-desc">Pulled fresh from github.com/alam-cloud every visit (older work lives on my legacy account, InfraPlatformer). What I'm building, breaking, and documenting.</p>
             </div>
+            <div class="case-grid">
+                <article class="case-card">
+                    <div class="case-tag">Case Study · Security</div>
+                    <h3 class="case-title">sentinel-ai — Automated Threat Detection for Service Meshes</h3>
+                    <p class="case-problem"><span class="case-label">Problem:</span> Istio/Tetrarte deployments generate huge volumes of runtime telemetry that nobody has time to triage — real threats drown in noise.</p>
+                    <p class="case-built"><span class="case-label">Built:</span> AI-powered security monitoring that watches mesh traffic, generates OPA policies automatically, and visualises threats in real time.</p>
+                    <p class="case-result"><span class="case-label">Result:</span> Policy generation that took hours of manual eBPF/Tetrarte rule-writing now happens automatically from observed traffic.</p>
+                    <a href="https://github.com/alam-cloud/sentinel-ai" target="_blank" rel="noopener noreferrer" class="case-link">View on GitHub &rarr;</a>
+                </article>
+                <article class="case-card">
+                    <div class="case-tag">Case Study · Multi-Tenant IaC</div>
+                    <h3 class="case-title">Terraform at MSP Scale — Infrastructure as a Service</h3>
+                    <p class="case-problem"><span class="case-label">Problem:</span> Running terraform apply by hand across hundreds of MSP customer accounts is slow, inconsistent, and one fat-finger away from an outage.</p>
+                    <p class="case-built"><span class="case-label">Built:</span> An orchestrated multi-account Terraform pipeline with OPA guardrails — every apply is policy-checked, staged, and auditable.</p>
+                    <p class="case-result"><span class="case-label">Result:</span> Infrastructure delivery became a product: repeatable, guardrailed, and safe enough to hand to the whole team — the subject of my AWS Builder Center article.</p>
+                    <a href="https://builder.aws.com/content/3L0q6ZhRbuf6RNlcwTxhqrleach" target="_blank" rel="noopener noreferrer" class="case-link">Read the article &rarr;</a>
+                </article>
+                <article class="case-card">
+                    <div class="case-tag">Case Study · Open Source</div>
+                    <h3 class="case-title">Envoy AI Gateway Docs v2 — 10K+ Users Served</h3>
+                    <p class="case-problem"><span class="case-label">Problem:</span> The Envoy AI Gateway docs were fragmented — engineers couldn't get from zero to a working AI gateway without reading source.</p>
+                    <p class="case-built"><span class="case-label">Built:</span> Authored Version 2 of the documentation end-to-end, plus features for the VS Code extension, working with the upstream community.</p>
+                    <p class="case-result"><span class="case-label">Result:</span> The docs now serve 10,000+ users and are the canonical getting-started path for the project.</p>
+                    <a href="https://github.com/alam-cloud" target="_blank" rel="noopener noreferrer" class="case-link">GitHub profile &rarr;</a>
+                </article>
+            </div>
             <div class="projects-grid" id="projects-grid">
                 <div class="repo-skeleton"></div>
                 <div class="repo-skeleton"></div>
@@ -2511,10 +2616,6 @@
                      alt="Live Credly badge statistics" 
                      loading="lazy" 
                      style="max-width: 100%; height: auto; border-radius: 10px; display: block; margin: 0 auto;">
-                <img src="https://credly-readme-stats.onrender.com/api/badge-grid?username=alam-zaib-ahmad&theme=dark&hide_border=true&bg_color=0d1321&title_color=00d4aa&text_color=e2e8f0&icon_color=38bdf8&border_color=1e293b&columns=4&rows=3&badge_size=64&show_name=false&show_issuer=false" 
-                     alt="Live Credly badge grid" 
-                     loading="lazy" 
-                     style="max-width: 100%; height: auto; border-radius: 10px; display: block; margin: 0 auto;">
             </div>
             <ul class="print-only cert-print-list">
                 <li>52 verified badges on Credly — credly.com/users/alam-zaib-ahmad/badges</li>
@@ -2557,7 +2658,7 @@
                     </div>
                 </div>
                 <div class="contact-links">
-                    <a href="mailto:alamzaibahmad615@gmail.com" class="contact-link">
+                    <a href="mailto:alamzaibahmad615@gmail.com" target="_self" class="contact-link">
                         <div class="icon">&#9993;</div>
                         <div>
                             <div style="font-weight: 600;">Email</div>
@@ -3179,6 +3280,19 @@ rule no_world_open_ingress {
 <!-- BUILDER-ARTICLE-BODIES:END -->
     </main>
 
+
+    <section id="colophon" class="section-alt" style="padding: 3rem 0;">
+        <div class="container">
+            <div class="colophon-card">
+                <div class="section-tag" style="margin-bottom: 0.5rem;">Colophon</div>
+                <h2 class="section-title" style="font-size: 1.4rem;">How This <span class="gradient-text">Site</span> Is Built</h2>
+                <p class="colophon-body">
+                    This site is itself a portfolio piece. One self-contained <span class="mono">index.html</span> — no frameworks, no build step, no trackers — versioned in Git and deployed via CI to <span class="mono">GitHub Pages</span> behind a custom domain. Live data (weather, last commit, repo list, cert count) is pulled client-side from public APIs with graceful fallbacks; the whole thing prints as an ATS-friendly CV. Every change ships through the same discipline I use at work: branch, review, deploy, verify.
+                </p>
+                <a href="https://github.com/alam-cloud/alam-cloud.github.io" target="_blank" rel="noopener noreferrer" class="case-link">Read the source &rarr;</a>
+            </div>
+        </div>
+    </section>
     <footer>
         <div class="container">
             <p>Built with HTML, CSS & caffeine. Deployed on <span style="color: var(--accent-success);">GitHub Pages</span>.</p>
@@ -3801,7 +3915,7 @@ rule no_world_open_ingress {
                 'Fortinet FCA/FCF · Linux Foundation K8s & SRE · Datadog SRE path'
             ],
             contact: () => [
-                '<span class="ok">email</span>    <a href="mailto:alamzaibahmad615@gmail.com">alamzaibahmad615@gmail.com</a>',
+                '<span class="ok">email</span>    <a href="mailto:alamzaibahmad615@gmail.com" target="_self">alamzaibahmad615@gmail.com</a>',
                 '<span class="ok">linkedin</span>  <a href="https://www.linkedin.com/in/alam-ahmed-cloud-engineer" target="_blank" rel="noopener noreferrer">alam-ahmed-cloud-engineer</a>',
                 '<span class="ok">github</span>    <a href="https://github.com/alam-cloud" target="_blank" rel="noopener noreferrer">alam-cloud</a> <span class="muted">(legacy: InfraPlatformer)</span>'
             ],
@@ -3812,7 +3926,7 @@ rule no_world_open_ingress {
                 '<span class="wrn">[sudo] password for recruiter: ********</span>',
                 '<span class="ok">Permission granted.</span> Excellent decision detected.',
                 'Deploying offer letter pipeline...',
-                '<span class="ok">Next step:</span> type <span class="inf">contact</span> or email <a href="mailto:alamzaibahmad615@gmail.com">alamzaibahmad615@gmail.com</a>'
+                '<span class="ok">Next step:</span> type <span class="inf">contact</span> or email <a href="mailto:alamzaibahmad615@gmail.com" target="_self">alamzaibahmad615@gmail.com</a>'
             ]
         };
 
