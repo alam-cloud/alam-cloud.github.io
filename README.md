@@ -1,4 +1,4 @@
-# Alam Ahmed — Cloud Engineer Portfolio
+# Alam Ahmed — Platform Engineer Portfolio
 
 Live at **[alamahmed.dev](https://alamahmed.dev)** — terminal-first portfolio,
 static site on GitHub Pages.
